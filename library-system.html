@@ -3,234 +3,393 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>圖書館工作空間</title>
+<title>圖書室</title>
 <style>
 :root{
-  --paper:#f6f2ea; --paper-line:#e2d9c8; --ink:#2b2822; --ink-soft:#786f60; --ink-faint:#a89e8c;
-  --card:#fffdf8; --teal:#3c6e64; --teal-deep:#2a4d46; --teal-pale:#e4ede9;
-  --amber:#b8843a; --amber-pale:#f4e9d6; --rust:#a4452f; --rust-pale:#f4e0da;
-  --plum:#6d5a7e; --plum-pale:#ece5f0;
-  --radius:4px;
+  --bg:#faf8f4; --surface:#ffffff; --line:#e8e3d9; --line-faint:#f0ece2;
+  --ink:#24221e; --ink-soft:#726b5d; --ink-faint:#a49b89;
+  --accent:#3c6e64; --accent-deep:#2a4d46; --accent-soft:#e7efec;
+  --red:#b3492f; --red-soft:#f6e4de;
+  --amber:#8a5a1f; --amber-soft:#f4ecdb;
+  --plum:#6d5a7e;
+  --radius:6px;
 }
 *{ box-sizing:border-box; }
-html,body{ margin:0; height:100%; }
+html,body{ margin:0; padding:0; }
 body{
-  background:var(--paper); color:var(--ink);
+  background:var(--bg); color:var(--ink);
   font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
-  font-size:14px; line-height:1.5;
+  font-size:14.5px; line-height:1.6; -webkit-font-smoothing:antialiased;
 }
-.mono{ font-family:"Courier New",monospace; }
-h1,h2,h3{ font-family:"Noto Serif TC","PMingLiU",serif; margin:0; }
-button{ font-family:inherit; cursor:pointer; }
+h1,h2{ font-family:"Noto Serif TC","PMingLiU",serif; margin:0; font-weight:600; }
+button{ font-family:inherit; cursor:pointer; background:none; }
 input,select,textarea{ font-family:inherit; }
+a{ color:inherit; }
 
-/* ---------- shell ---------- */
-#app{ display:flex; flex-direction:column; min-height:100vh; }
-.topbar{
-  background:var(--ink); color:#f6f2ea; padding:10px 18px;
-  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+.app-shell{ display:flex; min-height:100vh; }
+.sidebar{
+  width:216px; background:var(--surface); border-right:1px solid var(--line);
+  padding:26px 16px; position:fixed; top:0; bottom:0; left:0; display:flex; flex-direction:column;
+  transform:translateX(0); transition:transform .2s; z-index:50;
 }
-.brand{ font-family:"Noto Serif TC",serif; font-size:17px; letter-spacing:1px; margin-right:6px; white-space:nowrap; }
-.brand span{ color:var(--amber); }
-.nav{ display:flex; gap:2px; flex-wrap:wrap; flex:1; }
-.nav button{
-  background:transparent; border:none; color:#d8d2c4; padding:7px 11px;
-  border-radius:14px; font-size:12.5px; letter-spacing:.5px; white-space:nowrap;
-}
-.nav button:hover{ background:rgba(255,255,255,0.08); color:#fff; }
-.nav button.active{ background:var(--teal); color:#fff; }
-.top-actions{ display:flex; gap:6px; align-items:center; }
-.searchbox{
-  background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2);
-  border-radius:14px; padding:5px 12px; color:#fff; font-size:12.5px; width:150px;
-}
-.searchbox::placeholder{ color:#c9c2b4; }
-.icon-btn{
-  background:transparent; border:1px solid rgba(255,255,255,0.25); color:#e8e3d8;
-  border-radius:14px; padding:5px 11px; font-size:11.5px;
-}
-.icon-btn:hover{ background:rgba(255,255,255,0.1); }
+.sidebar .logo{ font-size:17px; letter-spacing:.5px; padding:0 8px 22px; }
+.sidebar .search-mini{ margin:0 0 18px; padding:0 4px; }
+.sidebar .search-mini input{ width:100%; border:1px solid var(--line); border-radius:14px; padding:6px 12px; font-size:12.5px; background:var(--bg); color:var(--ink-soft); }
+.sidebar nav{ display:flex; flex-direction:column; gap:1px; }
+.sidebar nav button{ text-align:left; border:none; padding:8px 10px; border-radius:6px; font-size:13.5px; color:var(--ink-soft); width:100%; }
+.sidebar nav button:hover{ background:var(--line-faint); color:var(--ink); }
+.sidebar nav button.active{ background:var(--accent-soft); color:var(--accent-deep); font-weight:600; }
+.sidebar .divider{ height:1px; background:var(--line); margin:14px 10px; }
+.sidebar .foot{ margin-top:auto; padding:0 10px; font-size:11px; color:var(--ink-faint); }
+.sidebar-overlay{ display:none; }
+.mobile-topbar{ display:none; }
+.content{ margin-left:216px; padding:44px 52px 120px; max-width:760px; width:100%; }
 
-.main{ flex:1; max-width:1220px; margin:0 auto; width:100%; padding:22px 18px 90px; }
+@media(max-width:860px){
+  .sidebar{ transform:translateX(-100%); box-shadow:2px 0 16px rgba(0,0,0,0.12); }
+  .sidebar.show{ transform:translateX(0); }
+  .sidebar-overlay{ display:none; position:fixed; inset:0; background:rgba(0,0,0,0.2); z-index:45; }
+  .sidebar-overlay.show{ display:block; }
+  .content{ margin-left:0; padding:76px 18px 110px; max-width:100%; }
+  .mobile-topbar{ display:flex; align-items:center; gap:12px; position:fixed; top:0; left:0; right:0; height:54px; background:var(--surface); border-bottom:1px solid var(--line); padding:0 14px; z-index:40; }
+  .mobile-topbar .ham{ font-size:20px; border:none; background:none; padding:6px; color:var(--ink); }
+  .mobile-topbar .title{ font-size:15px; font-weight:600; }
+}
 .hidden{ display:none !important; }
 
-/* quick add fab */
-.fab{
-  position:fixed; right:26px; bottom:26px; width:56px; height:56px; border-radius:50%;
-  background:var(--teal); color:#fff; border:none; font-size:26px; box-shadow:2px 3px 0 var(--teal-deep);
-  z-index:40;
-}
-.fab:active{ transform:translate(1px,2px); }
+.fab{ position:fixed; right:26px; bottom:26px; z-index:55; background:var(--accent); color:#fff; border:none; border-radius:24px; padding:13px 20px; font-size:14px; box-shadow:0 3px 10px rgba(0,0,0,0.18); }
+.fab:hover{ background:var(--accent-deep); }
 
-/* ---------- generic components ---------- */
-.section-title{ font-size:15px; font-weight:700; margin:26px 0 10px; display:flex; align-items:center; gap:8px; }
-.section-title:first-child{ margin-top:0; }
-.pill{ display:inline-block; padding:2px 9px; border-radius:12px; font-size:11px; font-family:"Courier New",monospace; }
-.pill.cat{ background:var(--teal-pale); color:var(--teal-deep); }
+.page-title{ font-size:25px; margin-bottom:4px; }
+.page-sub{ color:var(--ink-soft); font-size:13.5px; margin-bottom:34px; }
+.section-label{ font-size:11.5px; letter-spacing:1.2px; text-transform:uppercase; color:var(--ink-faint); margin:34px 0 10px; display:flex; align-items:center; gap:8px; }
+.section-label:first-of-type{ margin-top:0; }
+.empty-note{ font-size:13px; color:var(--ink-faint); padding:8px 2px; }
+.link-btn{ font-size:12.5px; color:var(--accent-deep); text-decoration:underline; background:none; border:none; padding:0; }
 
-.stat-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:8px; }
-.stat-card{ background:var(--card); border:1px solid var(--paper-line); border-radius:var(--radius); padding:10px 12px; }
-.stat-card .n{ font-size:22px; font-weight:700; color:var(--teal-deep); font-family:"Courier New",monospace; }
-.stat-card .l{ font-size:11px; color:var(--ink-soft); }
-.stat-card.warn .n{ color:var(--rust); }
+.task-row{ display:flex; align-items:center; gap:11px; padding:10px 4px; border-bottom:1px solid var(--line-faint); cursor:pointer; }
+.task-row:hover{ background:#f8f5ef; }
+.task-check{ width:16px; height:16px; border:1.5px solid var(--ink-faint); border-radius:4px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff; }
+.task-check.checked{ background:var(--accent); border-color:var(--accent); }
+.task-main{ flex:1; min-width:0; }
+.task-title{ font-size:14.5px; color:var(--ink); }
+.task-title.done{ color:var(--ink-faint); text-decoration:line-through; }
+.task-sub{ font-size:11.5px; color:var(--ink-faint); margin-top:1px; }
+.task-meta{ font-size:11.5px; color:var(--ink-faint); white-space:nowrap; flex-shrink:0; }
+.task-meta.overdue{ color:var(--red); }
+.task-meta.soon{ color:var(--amber); }
+.row-actions{ display:flex; gap:2px; opacity:0; transition:opacity .15s; flex-shrink:0; }
+.task-row:hover .row-actions{ opacity:1; }
+.row-actions button{ border:none; font-size:15px; padding:3px 6px; border-radius:5px; color:var(--ink-soft); }
+.row-actions button:hover{ background:var(--line-faint); }
 
-.card-list{ display:flex; flex-direction:column; gap:8px; }
-.item-card{
-  background:var(--card); border:1px solid var(--paper-line); border-left:4px solid var(--ink-faint);
-  border-radius:var(--radius); padding:10px 13px;
-}
-.item-card.st-doing{ border-left-color:var(--amber); }
-.item-card.st-waiting{ border-left-color:var(--plum); }
-.item-card.st-checking{ border-left-color:#5a7fa6; }
-.item-card.st-done{ border-left-color:var(--teal); opacity:.75; }
-.item-card.st-inbox{ border-left-color:var(--ink-faint); }
-.item-card.overdue{ border-left-color:var(--rust); }
-.item-top{ display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
-.item-title{ font-weight:700; font-size:14px; }
-.item-title.done{ text-decoration:line-through; color:var(--ink-soft); }
-.item-sub{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; }
-.item-notes{ font-size:12.5px; color:var(--ink-soft); margin-top:5px; white-space:pre-wrap; }
-.badges{ display:flex; gap:5px; flex-wrap:wrap; margin-top:6px; }
-.badge{ font-size:10.5px; font-family:"Courier New",monospace; padding:1px 7px; border-radius:10px; border:1px solid var(--ink-faint); color:var(--ink-soft); }
-.badge.prio-high{ border-color:var(--rust); color:var(--rust); }
-.badge.prio-mid{ border-color:var(--amber); color:var(--amber); }
-.badge.due-over{ background:var(--rust); color:#fff; border-color:var(--rust); }
-.badge.due-soon{ background:var(--amber-pale); border-color:var(--amber); color:#8a5a1f; }
-.badge.waiting{ background:var(--plum-pale); border-color:var(--plum); color:var(--plum); }
-.actions-row{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
-.actions-row button{
-  font-size:10.5px; font-family:"Courier New",monospace; border:1px solid var(--ink-faint);
-  background:#fff; color:var(--ink); padding:3px 8px; border-radius:10px;
-}
-.actions-row button:hover{ background:var(--ink); color:#fff; }
-.actions-row button.del{ border-color:var(--rust); color:var(--rust); }
-.actions-row button.del:hover{ background:var(--rust); color:#fff; }
-.actions-row button.star.on{ background:var(--amber); color:#fff; border-color:var(--amber); }
-.empty-note{ font-size:12px; color:var(--ink-faint); font-family:"Courier New",monospace; padding:6px 0; }
+.attn-line{ padding:8px 3px; font-size:13.5px; border-bottom:1px solid var(--line-faint); cursor:pointer; }
+.attn-line .mk{ margin-right:6px; }
+.attn-line.urgent{ color:var(--red); }
+.attn-line.warn{ color:var(--amber); }
+.attn-line:hover{ background:#f8f5ef; }
 
-.toolbar{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
-.chip{ font-family:"Courier New",monospace; font-size:11.5px; border:1px solid var(--ink-soft); background:transparent; color:var(--ink-soft); padding:4px 10px; border-radius:13px; }
-.chip.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
-select.filter{ border:1px solid var(--paper-line); border-radius:12px; padding:5px 9px; font-size:11.5px; background:#fff; color:var(--ink-soft); }
+.up-row{ display:flex; align-items:center; gap:10px; padding:11px 3px; border-bottom:1px solid var(--line-faint); }
+.up-main{ flex:1; min-width:0; cursor:pointer; }
+.up-title{ font-size:14px; }
+.up-sub{ font-size:11.5px; color:var(--ink-faint); margin-top:2px; }
+.up-sub.prep{ color:var(--accent-deep); }
+.up-action{ flex-shrink:0; }
+.up-action button{ border:1px solid var(--accent); color:var(--accent-deep); background:transparent; border-radius:12px; padding:4px 11px; font-size:11.5px; }
+.up-action button:hover{ background:var(--accent-soft); }
 
-.grid2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-.grid3{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
-@media(max-width:850px){ .grid2,.grid3{ grid-template-columns:1fr; } }
+.proj-row{ padding:14px 4px; border-bottom:1px solid var(--line-faint); cursor:pointer; }
+.proj-row:hover{ background:#f8f5ef; }
+.proj-name{ font-size:15px; font-weight:600; }
+.proj-cat{ font-size:11.5px; color:var(--ink-faint); margin-left:8px; font-weight:400; }
+.proj-bar{ height:4px; background:var(--line); border-radius:2px; overflow:hidden; margin:8px 0 6px; }
+.proj-bar-fill{ height:100%; background:var(--accent); }
+.proj-foot{ display:flex; justify-content:space-between; font-size:12.5px; color:var(--ink-soft); }
 
-/* modal */
-.overlay{ position:fixed; inset:0; background:rgba(43,40,34,0.5); display:none; align-items:flex-start; justify-content:center; z-index:60; padding:30px 16px; overflow:auto; }
-.overlay.show{ display:flex; }
-.modal{ background:var(--card); width:100%; max-width:520px; border-radius:var(--radius); padding:22px; border:1px solid var(--paper-line); box-shadow:4px 4px 0 var(--ink); margin-bottom:40px; }
-.modal h2{ font-size:18px; margin-bottom:14px; }
-.field{ margin-bottom:11px; }
-.field label{ display:block; font-family:"Courier New",monospace; font-size:10.5px; color:var(--ink-soft); margin-bottom:3px; letter-spacing:.5px; }
-.field input,.field select,.field textarea{ width:100%; padding:7px 9px; border:1px solid var(--paper-line); border-radius:var(--radius); font-size:13px; background:#fff; color:var(--ink); }
-.field textarea{ resize:vertical; min-height:44px; }
-.row2{ display:grid; grid-template-columns:1fr 1fr; gap:9px; }
-.row3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:9px; }
-.modal-actions{ display:flex; justify-content:space-between; gap:8px; margin-top:16px; align-items:center; }
-.modal-actions .right{ display:flex; gap:8px; }
-.modal-actions button{ font-family:"Courier New",monospace; font-size:12px; padding:7px 15px; border-radius:var(--radius); border:1px solid var(--ink-soft); background:#fff; }
-.modal-actions .save{ background:var(--teal); color:#fff; border-color:var(--teal-deep); }
-.modal-actions .del{ color:var(--rust); border-color:var(--rust); }
-.more-toggle{ font-size:11.5px; color:var(--teal-deep); cursor:pointer; text-decoration:underline; margin:6px 0 12px; display:inline-block; }
-fieldset{ border:1px dashed var(--paper-line); border-radius:var(--radius); padding:10px; margin:0 0 12px; }
-legend{ font-family:"Courier New",monospace; font-size:10.5px; color:var(--ink-soft); padding:0 6px; }
+.segmented{ display:flex; gap:18px; border-bottom:1px solid var(--line); margin-bottom:6px; flex-wrap:wrap; }
+.segmented button{ border:none; padding:8px 2px; font-size:13.5px; color:var(--ink-faint); border-bottom:2px solid transparent; margin-bottom:-1px; }
+.segmented button.active{ color:var(--ink); border-color:var(--accent); font-weight:600; }
 
-.demo-tag{ background:var(--amber); color:#fff; font-size:9px; padding:1px 6px; border-radius:8px; margin-left:6px; vertical-align:middle; }
+.toolbar-line{ display:flex; gap:10px; align-items:center; margin-bottom:18px; flex-wrap:wrap; }
+.toolbar-line input[type=text],.toolbar-line input[type=search]{ border:1px solid var(--line); border-radius:14px; padding:6px 13px; font-size:13px; background:var(--surface); flex:1; min-width:140px; }
+.toolbar-line select{ border:1px solid var(--line); border-radius:14px; padding:6px 11px; font-size:12.5px; background:var(--surface); color:var(--ink-soft); }
+.toolbar-line .spacer{ flex:1; }
+.btn{ border:1px solid var(--line); background:var(--surface); border-radius:14px; padding:6px 14px; font-size:12.5px; color:var(--ink); }
+.btn:hover{ border-color:var(--ink-faint); }
+.btn.primary{ background:var(--accent); border-color:var(--accent-deep); color:#fff; }
+.btn.primary:hover{ background:var(--accent-deep); }
+.btn.danger{ color:var(--red); border-color:var(--red); background:transparent; }
+.btn.danger:hover{ background:var(--red-soft); }
+.btn.small{ padding:3px 9px; font-size:11px; border-radius:10px; }
 
-/* dashboard specific */
-.today-star-list .item-card{ border-left-color:var(--amber); }
-.attention-card{ border-left-color:var(--rust) !important; background:var(--rust-pale); }
+.drawer-overlay{ position:fixed; inset:0; background:rgba(30,28,24,0.18); z-index:64; display:none; }
+.drawer-overlay.show{ display:block; }
+.drawer{ position:fixed; top:0; right:0; bottom:0; width:430px; max-width:92vw; background:var(--surface); box-shadow:-6px 0 24px rgba(0,0,0,0.1); transform:translateX(100%); transition:transform .22s ease; z-index:65; overflow-y:auto; padding:28px 26px 60px; }
+.drawer.show{ transform:translateX(0); }
+.drawer-close{ position:absolute; top:18px; right:18px; font-size:20px; border:none; color:var(--ink-faint); background:none; }
+.drawer h2{ font-size:19px; margin-bottom:18px; padding-right:26px; }
+.d-field{ margin-bottom:13px; }
+.d-field label{ display:block; font-size:11px; color:var(--ink-faint); margin-bottom:4px; letter-spacing:.3px; }
+.d-field input, .d-field select, .d-field textarea{ width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:6px; font-size:13px; background:var(--bg); color:var(--ink); }
+.d-field textarea{ resize:vertical; min-height:44px; }
+.d-row2{ display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+.d-row3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:9px; }
+.d-section-label{ font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--ink-faint); margin:20px 0 8px; border-top:1px solid var(--line-faint); padding-top:16px; }
+.d-section-label:first-of-type{ border-top:none; padding-top:0; margin-top:0; }
+.drawer-actions{ display:flex; justify-content:space-between; align-items:center; margin-top:22px; flex-wrap:wrap; gap:8px; }
+.conflict-warn{ font-size:12px; color:var(--red); background:var(--red-soft); border-radius:6px; padding:7px 10px; margin-top:6px; }
+.conflict-warn.mild{ color:var(--amber); background:var(--amber-soft); }
 
-/* calendar */
-.cal-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
-.cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
-.cal-dow{ font-size:11px; text-align:center; color:var(--ink-soft); font-family:"Courier New",monospace; padding-bottom:4px; }
-.cal-cell{ background:var(--card); border:1px solid var(--paper-line); border-radius:var(--radius); min-height:78px; padding:5px; font-size:11px; cursor:pointer; }
-.cal-cell.other-month{ opacity:.35; }
-.cal-cell.today{ border-color:var(--teal); border-width:2px; }
-.cal-cell .d-num{ font-family:"Courier New",monospace; font-weight:700; margin-bottom:3px; }
-.cal-item{ font-size:9.5px; padding:1px 4px; border-radius:6px; margin-bottom:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.cal-item.ev{ background:var(--plum-pale); color:var(--plum); }
-.cal-item.tk{ background:var(--teal-pale); color:var(--teal-deep); }
+.modal-overlay{ position:fixed; inset:0; background:rgba(30,28,24,0.25); display:none; align-items:center; justify-content:center; z-index:70; padding:16px; overflow:auto; }
+.modal-overlay.show{ display:flex; }
+.modal-box{ background:var(--surface); width:100%; max-width:460px; border-radius:10px; padding:22px; box-shadow:0 8px 30px rgba(0,0,0,0.18); max-height:90vh; overflow:auto; }
+.modal-box h2{ font-size:16px; margin-bottom:14px; }
+.qa-input{ width:100%; font-size:15px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--bg); }
+.more-toggle{ font-size:12px; color:var(--accent-deep); text-decoration:underline; cursor:pointer; display:inline-block; margin:9px 0; }
+.modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:16px; flex-wrap:wrap; }
 
-/* weekly review */
-.review-step{ background:var(--card); border:1px solid var(--paper-line); border-radius:var(--radius); padding:14px 16px; margin-bottom:12px; }
-.review-step h3{ font-size:13.5px; margin-bottom:8px; }
-.review-step textarea{ width:100%; border:1px solid var(--paper-line); border-radius:var(--radius); padding:7px; font-size:12.5px; min-height:44px; }
+.list-plain{ display:flex; flex-direction:column; }
+.settings-row{ display:flex; justify-content:space-between; align-items:center; padding:9px 3px; border-bottom:1px solid var(--line-faint); font-size:13.5px; }
+.settings-row.archived{ opacity:.5; }
+.settings-row .acts{ display:flex; gap:8px; }
+.settings-row .acts button{ font-size:11.5px; color:var(--ink-soft); border:none; }
+.settings-row .acts button:hover{ color:var(--accent-deep); }
 
-/* business */
-.biz-card{ background:var(--card); border:1px solid var(--paper-line); border-radius:var(--radius); padding:14px; cursor:pointer; }
-.biz-card:hover{ border-color:var(--teal); }
-.biz-card .n{ font-size:20px; font-family:"Courier New",monospace; color:var(--teal-deep); font-weight:700; }
+.cal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px; }
+.cal-nav{ border:none; background:none; color:var(--ink-soft); font-size:13px; }
+.cal-nav:hover{ color:var(--ink); }
+.cal-toggles{ display:flex; gap:14px; font-size:12px; color:var(--ink-soft); margin-bottom:14px; }
+.cal-toggles label{ display:flex; align-items:center; gap:5px; cursor:pointer; }
+.cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:1px; background:var(--line-faint); border:1px solid var(--line-faint); }
+.cal-dow{ background:var(--bg); font-size:10.5px; text-align:center; color:var(--ink-faint); padding:5px 0; }
+.cal-cell{ background:var(--surface); min-height:74px; padding:5px; font-size:10.5px; cursor:pointer; }
+.cal-cell.other{ background:var(--bg); }
+.cal-cell.today .d-num{ color:var(--accent-deep); font-weight:700; }
+.cal-cell:hover{ background:#f8f5ef; }
+.cal-cell.conflict{ box-shadow:inset 0 0 0 1.5px var(--red); }
+.d-num{ font-size:11.5px; color:var(--ink-soft); margin-bottom:3px; }
+.cal-dot{ display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--ink-faint); margin-right:3px; }
+.cal-dot.ev{ background:var(--accent); }
+.cal-dot.school{ background:var(--plum); }
+.cal-item-txt{ font-size:9.5px; color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cal-item-txt.school{ color:var(--plum); opacity:.8; }
 
-/* quick add */
-.qa-title-input{ font-size:16px; padding:10px 12px; }
+.sem-month{ margin-bottom:22px; }
+.sem-month h3{ font-size:13.5px; font-weight:600; margin-bottom:6px; color:var(--ink); }
+.sem-line{ font-size:13px; padding:3px 0 3px 4px; border-left:2px solid var(--line); }
+.sem-line.mine{ border-left-color:var(--accent); }
+.sem-line.school{ color:var(--ink-faint); border-left-color:var(--plum); }
+.sem-line.conflict{ color:var(--red); border-left-color:var(--red); font-weight:600; }
 
-.toast{ position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:8px 18px; border-radius:20px; font-size:12.5px; z-index:80; opacity:0; transition:opacity .3s; }
+.demo-tag{ font-size:9.5px; color:var(--amber); border:1px solid var(--amber); padding:0 5px; border-radius:8px; margin-left:6px; }
+.impact-badge{ font-size:10px; padding:0 6px; border-radius:8px; margin-left:6px; border:1px solid var(--ink-faint); color:var(--ink-faint); }
+.impact-badge.high{ border-color:var(--red); color:var(--red); }
+.impact-badge.medium{ border-color:var(--amber); color:var(--amber); }
+
+.review-block{ margin-bottom:26px; }
+.review-block h3{ font-size:13.5px; font-weight:600; margin-bottom:4px; }
+.review-block .rb-sub{ font-size:12px; color:var(--ink-faint); margin-bottom:8px; }
+.review-block textarea{ width:100%; border:1px solid var(--line); border-radius:6px; padding:9px; font-size:13px; min-height:60px; background:var(--surface); }
+
+.step-row{ display:flex; gap:8px; align-items:flex-start; padding:8px 0; border-bottom:1px solid var(--line-faint); }
+.step-row .step-check{ margin-top:9px; width:15px; height:15px; border:1.5px solid var(--ink-faint); border-radius:4px; flex-shrink:0; cursor:pointer; }
+.step-row .step-check.checked{ background:var(--accent); border-color:var(--accent); }
+.step-row .step-fields{ flex:1; display:flex; flex-direction:column; gap:4px; }
+.step-row .step-fields .step-date{ font-size:11px; color:var(--ink-faint); }
+.step-row input[type=text]{ border:1px solid var(--line); border-radius:5px; padding:5px 7px; font-size:13px; }
+.tpl-step-edit{ display:flex; gap:6px; align-items:center; padding:5px 0; }
+.tpl-step-edit input[type=number]{ width:70px; border:1px solid var(--line); border-radius:5px; padding:5px 6px; font-size:12px; }
+.tpl-step-edit input[type=text]{ flex:1; border:1px solid var(--line); border-radius:5px; padding:5px 8px; font-size:12.5px; }
+.tpl-step-edit button{ border:none; color:var(--ink-faint); font-size:15px; }
+
+.toast{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:8px 18px; border-radius:20px; font-size:12.5px; z-index:90; opacity:0; transition:opacity .3s; pointer-events:none; }
 .toast.show{ opacity:1; }
-
-.loading-msg{ text-align:center; padding:60px 0; color:var(--ink-soft); font-family:"Courier New",monospace; }
+.loading-msg{ text-align:center; padding:80px 0; color:var(--ink-faint); }
 </style>
 </head>
 <body>
-<div id="app">
-  <div class="topbar">
-    <div class="brand">📚 圖書館<span>工作空間</span></div>
-    <div class="nav" id="navBar"></div>
-    <div class="top-actions">
-      <input class="searchbox" id="globalSearch" placeholder="搜尋全部…" onkeydown="if(event.key==='Enter')doSearch()">
-      <button class="icon-btn" onclick="openCategoryManager()">分類設定</button>
-      <button class="icon-btn" onclick="openExportMenu()">匯出備份</button>
-    </div>
+
+<div class="mobile-topbar">
+  <button class="ham" onclick="toggleSidebar()">☰</button>
+  <div class="title" id="mobileTitle">Today</div>
+</div>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<div class="app-shell">
+  <div class="sidebar" id="sidebar">
+    <div class="logo">圖書室</div>
+    <div class="search-mini"><input type="text" id="globalSearch" placeholder="搜尋…" onkeydown="if(event.key==='Enter')doSearch()"></div>
+    <nav id="navPrimary"></nav>
+    <div class="divider"></div>
+    <nav id="navSecondary"></nav>
+    <div class="foot">個人工作空間</div>
   </div>
-  <div class="main" id="mainArea">
-    <div class="loading-msg">載入中…</div>
-  </div>
+  <div class="content" id="mainArea"><div class="loading-msg">載入中…</div></div>
 </div>
 
-<button class="fab" onclick="openQuickAdd()" title="新增工作">＋</button>
+<button class="fab" onclick="openQuickAdd()">＋ 新增工作</button>
 
-<div class="overlay" id="overlay"><div class="modal" id="modalBody"></div></div>
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<div class="drawer" id="drawer"></div>
+<div class="modal-overlay" id="modalOverlay"><div class="modal-box" id="modalBox"></div></div>
 <div class="toast" id="toast"></div>
 
 <script>
 /* ============================================================
-   資料模型與儲存
+   資料模型 / 儲存 / Migration
 ============================================================ */
-const STORAGE_KEY = 'library-system-db-v1';
-const DEFAULT_CATEGORIES = ["圖書借閱系統","圖書館館場佈置","資媒組","自主學習","高中優質化","教師研習","SEL計畫執行","閱讀推廣","圖書館會議","主管會議資料"];
+const STORAGE_KEY = 'library-system-db-v1'; // 沿用既有 key，確保資料延續
 
-const STATUS_META = {
-  inbox:{label:'收件匣', icon:'📥'}, scheduled:{label:'已排程', icon:'📅'}, doing:{label:'進行中', icon:'🚧'},
-  waiting:{label:'等待他人', icon:'⏳'}, checking:{label:'待確認', icon:'🔍'}, done:{label:'完成', icon:'✅'}, archived:{label:'已歸檔', icon:'📦'}
+/* ============================================================
+   Google 試算表同步層（取代原本 Claude 環境提供的 window.storage）
+   ------------------------------------------------------------
+   這個檔案是「獨立部署版」，脫離 Claude 介面後不會再有內建的
+   window.storage 功能，所以這裡自己實作一份行為相同的版本，
+   實際資料讀寫透過 fetch 呼叫你部署的 Google Apps Script 網址。
+============================================================ */
+const SyncConfig = {
+  getUrl(){ return localStorage.getItem('libSyncUrl') || ''; },
+  setUrl(url){ localStorage.setItem('libSyncUrl', (url||'').trim()); },
+  clear(){ localStorage.removeItem('libSyncUrl'); }
 };
-const PRIO_META = { high:'高', mid:'中', low:'低' };
+
+async function pingSyncUrl(url){
+  const res = await fetch(`${url}${url.includes('?')?'&':'?'}action=ping`, { method:'GET' });
+  const data = await res.json();
+  if(!data.ok) throw new Error(data.error || '連線失敗');
+  return true;
+}
+
+window.storage = {
+  async get(key, shared){
+    const url = SyncConfig.getUrl();
+    if(!url) throw new Error('尚未設定 Google 試算表同步網址');
+    const res = await fetch(`${url}${url.includes('?')?'&':'?'}action=get&key=${encodeURIComponent(key)}`, { method:'GET' });
+    if(!res.ok) throw new Error('網路請求失敗（HTTP '+res.status+'）');
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error || '讀取失敗');
+    if(data.value === null || data.value === undefined || data.value === '') return null;
+    return { key, value: data.value, shared: !!shared };
+  },
+  async set(key, value, shared){
+    const url = SyncConfig.getUrl();
+    if(!url) throw new Error('尚未設定 Google 試算表同步網址');
+    // 用 text/plain 避免瀏覽器對 Apps Script 發出 CORS 預檢請求（Apps Script 不支援預檢）
+    const res = await fetch(url, {
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'set', key, value })
+    });
+    if(!res.ok) throw new Error('網路請求失敗（HTTP '+res.status+'）');
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error || '儲存失敗');
+    return { key, value, shared: !!shared };
+  },
+  async delete(key, shared){
+    const url = SyncConfig.getUrl();
+    if(!url) throw new Error('尚未設定 Google 試算表同步網址');
+    const res = await fetch(url, {
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'delete', key })
+    });
+    const data = await res.json();
+    return { key, deleted: !!(data&&data.ok), shared: !!shared };
+  }
+};
+const DEFAULT_CATEGORY_NAMES = ["圖書借閱系統","圖書館館場佈置","資媒組","自主學習","高中優質化","教師研習","SEL計畫執行","閱讀推廣","圖書館會議","主管會議資料"];
+const STATUS_LABELS = { inbox:'收件匣', scheduled:'已排程', doing:'進行中', waiting:'等待他人', checking:'待確認', done:'完成', archived:'已歸檔' };
+const PRIO_LABELS = { high:'高', mid:'中', low:'低' };
+const IMPACT_LABELS = { high:'高影響', medium:'中影響', low:'低影響' };
 
 let DB = null;
-let currentTab = 'dashboard';
+let currentTab = 'today';
 let saveTimer = null;
 
 function uid(p){ return (p||'id')+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 function daysDiff(dateStr){ if(!dateStr) return null; const d=new Date(dateStr+'T00:00:00'); const t=new Date(todayStr()+'T00:00:00'); return Math.round((d-t)/86400000); }
+function daysBetweenDates(a,b){ return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000); }
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
-function fmtDate(d){ return d ? d : '—'; }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1900); }
+function fmtDate(d){ return d ? d.slice(5).replace('-','/') : ''; }
+function addDaysToDate(dateStr, n){ const d=new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+function computeAcademicYear(dateStr){
+  const d = dateStr ? new Date(dateStr+'T00:00:00') : new Date();
+  const y = d.getFullYear(), m = d.getMonth()+1;
+  const startYear = m>=8 ? y : y-1;
+  const roc = startYear - 1911;
+  const term = (m>=8 || m<=1) ? 1 : 2;
+  return `${roc}-${term}`;
+}
 
 async function loadDB(){
+  let fetchFailed = false;
+  let raw = null;
   try{
     const res = await window.storage.get(STORAGE_KEY, false);
-    DB = res && res.value ? JSON.parse(res.value) : null;
-  }catch(e){ DB = null; }
-  if(!DB){
-    DB = { categories:[...DEFAULT_CATEGORIES], tasks:[], projects:[], meetings:[], results:[], events:[], reviews:[] };
-    seedDemoData();
-    await persist();
+    raw = res ? res.value : null;
+  }catch(e){
+    // 網路／連線錯誤：絕對不能當成「還沒有資料」，否則會誤蓋掉遠端既有資料
+    fetchFailed = true;
+    console.error('loadDB fetch error', e);
   }
-  // migrate missing arrays for safety
+  if(fetchFailed){
+    DB = null; // 讓 init() 顯示錯誤畫面，不建立、不寫入任何東西
+    return;
+  }
+  DB = raw ? JSON.parse(raw) : null;
+  if(!DB){
+    // 這裡確定是「試算表真的是空的」，才視為全新安裝並寫入初始資料
+    DB = { categories:[], tasks:[], projects:[], meetings:[], results:[], events:[], schoolEvents:[], prepTemplates:[], reviews:[] };
+    seedFreshInstall();
+    await persist();
+    return;
+  }
+  migrateDB();
+}
+
+function migrateDB(){
   ['tasks','projects','meetings','results','events','reviews','categories'].forEach(k=>{ if(!DB[k]) DB[k]=[]; });
+  if(!DB.schoolEvents) DB.schoolEvents = [];
+  if(!DB.prepTemplates) DB.prepTemplates = [];
+
+  // 1) categories: string[] -> {id,name,archived,order}[]
+  if(DB.categories.length && typeof DB.categories[0] === 'string'){
+    DB.categories = DB.categories.map((name,i)=>({ id:uid('cat'), name, archived:false, order:i }));
+  }
+  if(!DB.categories.length){
+    DB.categories = DEFAULT_CATEGORY_NAMES.map((name,i)=>({ id:uid('cat'), name, archived:false, order:i }));
+  }
+  const nameToId = {};
+  DB.categories.forEach(c=>{ nameToId[c.name]=c.id; });
+  function resolveCat(name){
+    if(!name) return '';
+    if(nameToId[name]) return nameToId[name];
+    const nc = { id:uid('cat'), name, archived:false, order:DB.categories.length };
+    DB.categories.push(nc); nameToId[name]=nc.id; return nc.id;
+  }
+  // 2) migrate category(string) -> categoryId on all entities; add academicYear if missing
+  ['tasks','projects','meetings','results','events'].forEach(coll=>{
+    DB[coll].forEach(item=>{
+      if(!item.categoryId && item.category){ item.categoryId = resolveCat(item.category); }
+      if(item.academicYear===undefined) item.academicYear = computeAcademicYear(item.createdAt||item.date||item.startDate||item.dueDate||todayStr());
+    });
+  });
+  DB.tasks.forEach(t=>{ if(t.eventId===undefined) t.eventId=''; });
+  DB.events.forEach(e=>{
+    if(e.endDate===undefined) e.endDate='';
+    if(e.templateId===undefined) e.templateId='';
+    if(e.relatedProjectId===undefined) e.relatedProjectId = e.projectId||'';
+  });
+  if(!DB.prepTemplates.length) seedPrepTemplates();
+  if(!DB.schoolEvents.length) seedSchoolEvents();
+}
+
+function catName(id){ if(!id) return ''; const c=DB.categories.find(x=>x.id===id); return c? c.name : ''; }
+function activeCategories(){ return DB.categories.filter(c=>!c.archived).sort((a,b)=>a.order-b.order); }
+function catOptionsHtml(selectedId){
+  return `<option value="">未分類</option>` + activeCategories().map(c=>`<option value="${c.id}" ${selectedId===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('');
 }
 
 async function persist(){
@@ -239,130 +398,190 @@ async function persist(){
     saveTimer = setTimeout(async ()=>{
       try{
         const r = await window.storage.set(STORAGE_KEY, JSON.stringify(DB), false);
-        if(!r) console.error('儲存失敗');
-      }catch(e){ console.error('storage error', e); }
+        if(!r) toast('⚠ 儲存失敗，請檢查網路連線');
+      }
+      catch(e){
+        console.error('storage error', e);
+        toast('⚠ 儲存失敗：'+e.message);
+      }
       resolve();
     }, 150);
   });
 }
 
-function seedDemoData(){
-  const t = todayStr();
+/* ---------- Prep templates + school calendar seed ---------- */
+function seedPrepTemplates(){
+  DB.prepTemplates.push(
+    { id:uid('tpl'), name:'教師研習', steps:[
+      {id:uid('st'),offset:-45,title:'確認講師與主題'},
+      {id:uid('st'),offset:-30,title:'確認場地與經費'},
+      {id:uid('st'),offset:-21,title:'公告與報名開放'},
+      {id:uid('st'),offset:-14,title:'確認報名人數'},
+      {id:uid('st'),offset:-7,title:'確認講師資料與簡報'},
+      {id:uid('st'),offset:-3,title:'設備／簽到／餐點確認'},
+      {id:uid('st'),offset:1,title:'整理照片'},
+      {id:uid('st'),offset:7,title:'核銷與成果彙整'}
+    ]},
+    { id:uid('tpl'), name:'閱讀推廣活動', steps:[
+      {id:uid('st'),offset:-30,title:'確定活動主題與形式'},
+      {id:uid('st'),offset:-21,title:'設計海報與宣傳素材'},
+      {id:uid('st'),offset:-14,title:'印製海報／確認場地'},
+      {id:uid('st'),offset:-7,title:'測試 QR Code 與報名系統'},
+      {id:uid('st'),offset:-2,title:'最終物資與人力確認'},
+      {id:uid('st'),offset:3,title:'整理照片與參與人數'},
+      {id:uid('st'),offset:10,title:'撰寫成果摘要'}
+    ]},
+    { id:uid('tpl'), name:'SEL 共學', steps:[
+      {id:uid('st'),offset:-21,title:'確認共學主題與講者'},
+      {id:uid('st'),offset:-10,title:'邀約教師社群時間'},
+      {id:uid('st'),offset:-3,title:'準備共學資料'},
+      {id:uid('st'),offset:2,title:'紀錄共學回饋'}
+    ]}
+  );
+}
+function seedSchoolEvents(){
   const addDays = n=>{ const d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
-  const proj1 = { id:uid('p'), name:'墨墨的甦醒活動', category:'閱讀推廣', description:'學期末閱讀推廣主題活動', startDate:addDays(-5), dueDate:addDays(6), status:'doing', progress:40, nextAction:'確認海報印刷數量', notes:'', isDemo:true };
-  const proj2 = { id:uid('p'), name:'B-3 自主學習計畫', category:'高中優質化', description:'高中優質化 B-3 自主學習子計畫執行與成果整理', startDate:addDays(-20), dueDate:addDays(20), status:'doing', progress:55, nextAction:'彙整期中執行紀錄', notes:'', isDemo:true };
-  DB.projects.push(proj1, proj2);
+  DB.schoolEvents.push(
+    { id:uid('se'), title:'第二次段考', startDate:addDays(18), endDate:addDays(19), type:'考試', impactLevel:'high', source:'手動輸入' },
+    { id:uid('se'), title:'校慶活動', startDate:addDays(45), endDate:addDays(45), type:'全校活動', impactLevel:'medium', source:'手動輸入' }
+  );
+}
+
+function seedFreshInstall(){
+  DB.categories = DEFAULT_CATEGORY_NAMES.map((name,i)=>({ id:uid('cat'), name, archived:false, order:i }));
+  seedPrepTemplates();
+  seedSchoolEvents();
+  const t = todayStr();
+  const catId = n => DB.categories.find(c=>c.name===n).id;
+  const addDays = n=>{ const d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
+  const proj1 = { id:uid('p'), name:'墨墨的甦醒活動', categoryId:catId('閱讀推廣'), description:'學期末閱讀推廣主題活動', startDate:addDays(-5), dueDate:addDays(6), status:'doing', progress:40, nextAction:'確認海報印刷數量', academicYear:computeAcademicYear(t), isDemo:true };
+  DB.projects.push(proj1);
+  const ev1 = { id:uid('e'), title:'墨墨的甦醒活動開始', date:addDays(30), endDate:'', categoryId:catId('閱讀推廣'), relatedProjectId:proj1.id, templateId:DB.prepTemplates.find(x=>x.name==='閱讀推廣活動').id, academicYear:computeAcademicYear(t), isDemo:true, startDate:addDays(30) };
+  DB.events.push(ev1);
   DB.tasks.push(
-    { id:uid('t'), title:'印製墨墨的甦醒海報', content:'', category:'閱讀推廣', projectId:proj1.id, status:'doing', priority:'high', createdAt:t, scheduledDate:t, dueDate:addDays(2), completedDate:'', nextAction:'確認印刷廠報價', progress:30, notes:'', attachments:'', isToday:true, isDemo:true },
-    { id:uid('t'), title:'測試活動 QR Code', content:'', category:'閱讀推廣', projectId:proj1.id, status:'scheduled', priority:'mid', createdAt:t, scheduledDate:addDays(1), dueDate:addDays(3), completedDate:'', nextAction:'', progress:0, notes:'', attachments:'', isToday:false, isDemo:true },
-    { id:uid('t'), title:'A3 數位素養暨資安研習成果整理', content:'', category:'教師研習', projectId:'', status:'inbox', priority:'mid', createdAt:t, scheduledDate:'', dueDate:addDays(5), completedDate:'', nextAction:'', progress:0, notes:'研習結束後待整理簽到與心得', attachments:'', isToday:false, isDemo:true },
-    { id:uid('t'), title:'SEL 教師共學社群邀約', content:'', category:'SEL計畫執行', projectId:'', status:'waiting', priority:'mid', createdAt:t, scheduledDate:'', dueDate:'', completedDate:'', nextAction:'', progress:0, notes:'', attachments:'', isToday:false, isDemo:true,
-      waitingFor:'蕭老師', waitingWhat:'提供研習資料與時段', waitingStart:t, waitingFollowUp:addDays(3) },
-    { id:uid('t'), title:'下次主管會議圖書館資料彙整', content:'', category:'主管會議資料', projectId:'', status:'scheduled', priority:'high', createdAt:t, scheduledDate:addDays(1), dueDate:addDays(2), completedDate:'', nextAction:'', progress:0, notes:'', attachments:'', isToday:true, isDemo:true },
-    { id:uid('t'), title:'整理 B-3 期中執行紀錄', content:'', category:'高中優質化', projectId:proj2.id, status:'doing', priority:'mid', createdAt:t, scheduledDate:t, dueDate:addDays(10), completedDate:'', nextAction:'向承辦老師索取照片', progress:50, notes:'', attachments:'', isToday:false, isDemo:true },
-    { id:uid('t'), title:'圖書借閱系統逾期通知檢查', content:'', category:'圖書借閱系統', projectId:'', status:'scheduled', priority:'low', createdAt:t, scheduledDate:t, dueDate:t, completedDate:'', nextAction:'', progress:0, notes:'', attachments:'', isToday:false, isDemo:true },
-    { id:uid('t'), title:'上學期閱讀推廣成果初稿', content:'', category:'閱讀推廣', projectId:'', status:'done', priority:'mid', createdAt:addDays(-10), scheduledDate:addDays(-3), dueDate:addDays(-1), completedDate:addDays(-1), nextAction:'', progress:100, notes:'已完成初稿，待補照片', attachments:'', isToday:false, isDemo:true }
-  );
-  DB.meetings.push(
-    { id:uid('m'), name:'圖書館業務週會', date:addDays(-2), type:'例行會議', attendees:'圖書館全體同仁', discussion:'各項業務進度盤點', decisions:'加快墨墨的甦醒海報印製', followUps:'確認海報印刷數量\n聯繫印刷廠', category:'圖書館會議', projectId:proj1.id, isDemo:true }
-  );
-  DB.events.push(
-    { id:uid('e'), title:'墨墨的甦醒活動開始', date:addDays(6), category:'閱讀推廣', projectId:proj1.id, isDemo:true }
-  );
-  DB.results.push(
-    { id:uid('r'), title:'112上 圖書館閱讀推廣小活動', date:addDays(-30), category:'閱讀推廣', projectId:'', purpose:'提升借閱率', content:'辦理主題書展與小遊戲', participants:'約 150 人次', summary:'借閱率較前月提升 12%', photos:'', poster:'', ppt:'', signInSheet:'', survey:'', budget:'', docs:'', issues:'活動人力不足', improvements:'下次提前招募志工', reportText:'', isDemo:true }
+    { id:uid('t'), title:'印製墨墨的甦醒海報', category:'', categoryId:catId('閱讀推廣'), projectId:proj1.id, eventId:'', status:'doing', priority:'high', createdAt:t, scheduledDate:t, dueDate:addDays(1), completedDate:'', nextAction:'', notes:'', isToday:true, isDemo:true, academicYear:computeAcademicYear(t) },
+    { id:uid('t'), title:'SEL 教師共學社群邀約', categoryId:catId('SEL計畫執行'), projectId:'', eventId:'', status:'waiting', priority:'mid', createdAt:t, scheduledDate:'', dueDate:'', completedDate:'', nextAction:'', notes:'', isToday:false, isDemo:true, academicYear:computeAcademicYear(t),
+      waitingFor:'蕭老師', waitingWhat:'提供研習資料與時段', waitingStart:t, waitingFollowUp:t },
+    { id:uid('t'), title:'下次主管會議圖書館資料彙整', categoryId:catId('主管會議資料'), projectId:'', eventId:'', status:'scheduled', priority:'high', createdAt:t, scheduledDate:addDays(1), dueDate:addDays(2), completedDate:'', nextAction:'', notes:'', isToday:false, isDemo:true, academicYear:computeAcademicYear(t) }
   );
 }
 
 /* ============================================================
-   工具：篩選/計算
+   衍生資料
 ============================================================ */
 function activeTasks(){ return DB.tasks.filter(t=>t.status!=='archived'); }
-function isOverdue(t){ if(t.status==='done'||t.status==='archived') return false; const d = t.dueDate; if(!d) return false; return daysDiff(d) < 0; }
-function isDueSoon(t, days=3){ if(t.status==='done'||t.status==='archived') return false; const d=t.dueDate; if(!d) return false; const dd=daysDiff(d); return dd>=0 && dd<=days; }
-function catOf(id){ return id; }
-
+function isOverdue(t){ if(t.status==='done'||t.status==='archived') return false; if(!t.dueDate) return false; return daysDiff(t.dueDate) < 0; }
+function isDueSoon(t, days=3){ if(t.status==='done'||t.status==='archived') return false; if(!t.dueDate) return false; const dd=daysDiff(t.dueDate); return dd>=0 && dd<=days; }
 function projectProgressDisplay(p){
   if(p.progressOverride !== undefined && p.progressOverride !== null && p.progressOverride !== '') return p.progressOverride;
   const related = DB.tasks.filter(t=>t.projectId===p.id && t.status!=='archived');
   if(!related.length) return p.progress||0;
-  const done = related.filter(t=>t.status==='done').length;
-  return Math.round(done/related.length*100);
+  return Math.round(related.filter(t=>t.status==='done').length/related.length*100);
+}
+function eventDate(e){ return e.startDate || e.date; }
+function upcomingMyEvents(withinDays){
+  return DB.events.filter(e=>{ const dd=daysDiff(eventDate(e)); return dd!==null && dd>=0 && dd<=withinDays; })
+    .sort((a,b)=> daysDiff(eventDate(a)) - daysDiff(eventDate(b)));
+}
+function checkConflicts(startDate, endDate, excludeId){
+  if(!startDate) return [];
+  const s = startDate, e = endDate || startDate;
+  const warnings = [];
+  DB.schoolEvents.forEach(se=>{
+    const seS = se.startDate, seE = se.endDate || se.startDate;
+    const overlap = !(e < seS || s > seE);
+    if(overlap){
+      warnings.push({ level:'high', text:`與學校行事曆「${se.title}」（${fmtDate(seS)}${seE!==seS?'–'+fmtDate(seE):''}）撞期` });
+    } else if(se.impactLevel==='high'){
+      if(daysBetweenDates(seE, s)===1) warnings.push({ level:'mild', text:`安排在「${se.title}」隔天，可能互相影響` });
+      if(daysBetweenDates(e, seS)===1) warnings.push({ level:'mild', text:`「${se.title}」在此活動隔天，可能互相影響` });
+    }
+  });
+  return warnings;
+}
+function eventHasTasks(eventId){ return DB.tasks.some(t=>t.eventId===eventId && t.status!=='archived'); }
+function prepSuggestions(withinDays=45){
+  return DB.events.filter(e=>{
+    if(!e.templateId) return false;
+    if(eventHasTasks(e.id)) return false;
+    const dd = daysDiff(eventDate(e));
+    return dd!==null && dd>=0 && dd<=withinDays;
+  }).sort((a,b)=> daysDiff(eventDate(a)) - daysDiff(eventDate(b)));
 }
 
 /* ============================================================
-   Nav / Tabs
+   Navigation
 ============================================================ */
-const TABS = [
-  {k:'dashboard', l:'儀表板'}, {k:'inbox', l:'收件匣'}, {k:'tasks', l:'工作'},
-  {k:'projects', l:'專案'}, {k:'business', l:'業務總覽'}, {k:'calendar', l:'日曆'},
-  {k:'results', l:'成果'}, {k:'meetings', l:'會議'}, {k:'review', l:'週回顧'}
+const PRIMARY_TABS = [
+  {k:'today', l:'Today'}, {k:'inbox', l:'Inbox'}, {k:'tasks', l:'Tasks'},
+  {k:'projects', l:'Projects'}, {k:'calendar', l:'Calendar'}, {k:'library', l:'Library'}
 ];
+const SECONDARY_TABS = [ {k:'review', l:'Review'}, {k:'settings', l:'Settings'} ];
+function inboxCount(){ return (DB && DB.tasks) ? DB.tasks.filter(t=>t.status==='inbox').length : 0; }
 function renderNav(){
-  document.getElementById('navBar').innerHTML = TABS.map(t=>
+  document.getElementById('navPrimary').innerHTML = PRIMARY_TABS.map(t=>{
+    const badge = t.k==='inbox' && inboxCount() ? ` <span style="color:var(--ink-faint);font-size:11px;">${inboxCount()}</span>` : '';
+    return `<button class="${t.k===currentTab?'active':''}" onclick="switchTab('${t.k}')">${t.l}${badge}</button>`;
+  }).join('');
+  document.getElementById('navSecondary').innerHTML = SECONDARY_TABS.map(t=>
     `<button class="${t.k===currentTab?'active':''}" onclick="switchTab('${t.k}')">${t.l}</button>`
   ).join('');
+  const cur = [...PRIMARY_TABS,...SECONDARY_TABS].find(t=>t.k===currentTab);
+  document.getElementById('mobileTitle').textContent = cur ? cur.l : '圖書室';
 }
-function switchTab(k){ currentTab=k; renderNav(); renderMain(); }
+function switchTab(k){ currentTab=k; renderNav(); renderMain(); closeSidebarOnMobile(); window.scrollTo(0,0); }
+function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('show'); document.getElementById('sidebarOverlay').classList.toggle('show'); }
+function closeSidebarOnMobile(){ document.getElementById('sidebar').classList.remove('show'); document.getElementById('sidebarOverlay').classList.remove('show'); }
+
 function renderMain(){
   const el = document.getElementById('mainArea');
-  if(currentTab==='dashboard') el.innerHTML = viewDashboard();
+  if(currentTab==='today') el.innerHTML = viewToday();
   else if(currentTab==='inbox') el.innerHTML = viewInbox();
   else if(currentTab==='tasks') el.innerHTML = viewTasks();
   else if(currentTab==='projects') el.innerHTML = viewProjects();
-  else if(currentTab==='business') el.innerHTML = viewBusiness();
   else if(currentTab==='calendar') el.innerHTML = viewCalendar();
-  else if(currentTab==='results') el.innerHTML = viewResults();
-  else if(currentTab==='meetings') el.innerHTML = viewMeetings();
+  else if(currentTab==='library') el.innerHTML = viewLibrary();
   else if(currentTab==='review') el.innerHTML = viewReview();
-  else if(currentTab==='search') el.innerHTML = window._searchResultsHtml || '';
+  else if(currentTab==='settings') el.innerHTML = viewSettings();
+  else if(currentTab==='search') el.innerHTML = window._searchHtml || '';
   afterRenderHooks();
 }
 function afterRenderHooks(){
-  if(currentTab==='calendar') renderCalendarGrid();
+  if(currentTab==='calendar'){ if(calViewMode==='month') renderCalendarGrid(); }
 }
 
 /* ============================================================
-   工作卡片 render helper
+   Task row
 ============================================================ */
-function taskCardHtml(t, opts={}){
-  const st = STATUS_META[t.status]||{label:t.status,icon:''};
+function taskRowHtml(t, opts={}){
   const over = isOverdue(t);
   const soon = !over && isDueSoon(t);
-  let cls = 'item-card st-'+t.status + (over?' overdue':'');
-  const proj = DB.projects.find(p=>p.id===t.projectId);
-  let badges = `<span class="badge prio-${t.priority}">優先${PRIO_META[t.priority]||''}</span>`;
-  if(t.dueDate) badges += `<span class="badge ${over?'due-over':(soon?'due-soon':'')}">${over?'已逾期 ':'截止 '}${t.dueDate}</span>`;
-  if(t.scheduledDate) badges += `<span class="badge">排程 ${t.scheduledDate}</span>`;
-  if(t.status==='waiting') badges += `<span class="badge waiting">等待：${escapeHtml(t.waitingFor||'?')} · 追蹤 ${t.waitingFollowUp||'—'}</span>`;
-  if(t.isDemo) badges += `<span class="demo-tag">DEMO</span>`;
+  let metaText = '';
+  if(t.status==='waiting') metaText = '等待 · ' + (t.waitingFor||'');
+  else if(t.dueDate) metaText = (over?'已逾期 ':'') + fmtDate(t.dueDate);
+  else if(t.scheduledDate) metaText = fmtDate(t.scheduledDate);
+  const metaCls = over ? 'overdue' : (soon ? 'soon' : '');
+  const cName = catName(t.categoryId);
   return `
-  <div class="${cls}">
-    <div class="item-top">
-      <div>
-        <div class="item-title ${t.status==='done'?'done':''}">${st.icon} ${escapeHtml(t.title)}</div>
-        <div class="item-sub">${escapeHtml(t.category||'未分類')}${proj?(' · 專案：'+escapeHtml(proj.name)):''}</div>
-      </div>
+  <div class="task-row" onclick="openTaskDrawer('${t.id}')">
+    <div class="task-check ${t.status==='done'?'checked':''}" onclick="event.stopPropagation();quickComplete('${t.id}')">${t.status==='done'?'✓':''}</div>
+    <div class="task-main">
+      <div class="task-title ${t.status==='done'?'done':''}">${escapeHtml(t.title)}</div>
+      ${opts.showCat!==false && cName ? `<div class="task-sub">${escapeHtml(cName)}</div>` : ''}
     </div>
-    ${t.nextAction?`<div class="item-notes">下一步：${escapeHtml(t.nextAction)}</div>`:''}
-    ${t.notes?`<div class="item-notes">${escapeHtml(t.notes)}</div>`:''}
-    <div class="badges">${badges}</div>
-    <div class="actions-row">
-      ${t.status!=='done' ? `<button onclick="quickComplete('${t.id}')">☑ 完成</button>`:''}
-      ${t.status!=='doing' ? `<button onclick="quickSetStatus('${t.id}','doing')">→ 進行</button>`:''}
-      ${t.status!=='waiting' ? `<button onclick="quickSetStatus('${t.id}','waiting')">⏳ 等待</button>`:''}
-      <button onclick="openTaskModal('${t.id}')">📅 編輯</button>
-      <button class="star ${t.isToday?'on':''}" onclick="toggleStar('${t.id}')">${t.isToday?'★ 今日重點':'☆ 標為今日重點'}</button>
-      <button class="del" onclick="deleteTask('${t.id}')">刪除</button>
+    ${metaText? `<div class="task-meta ${metaCls}">${metaText}</div>`:''}
+    <div class="row-actions">
+      ${t.status!=='doing'?`<button title="開始進行" onclick="event.stopPropagation();quickSetStatus('${t.id}','doing')">→</button>`:''}
+      <button title="延期" onclick="event.stopPropagation();quickDefer('${t.id}')">⏵</button>
+      ${t.status!=='waiting'?`<button title="等待他人" onclick="event.stopPropagation();quickSetStatus('${t.id}','waiting')">⋯</button>`:''}
     </div>
   </div>`;
 }
-
 async function quickComplete(id){
   const t = DB.tasks.find(x=>x.id===id); if(!t) return;
-  t.status='done'; t.completedDate=todayStr();
+  t.status = t.status==='done' ? 'scheduled' : 'done';
+  if(t.status==='done') t.completedDate = todayStr();
   await persist(); renderMain();
-  toast('已完成 ✓ 記得之後在「成果」補上紀錄');
 }
 async function quickSetStatus(id, status){
   const t = DB.tasks.find(x=>x.id===id); if(!t) return;
@@ -370,98 +589,91 @@ async function quickSetStatus(id, status){
   if(status==='waiting' && !t.waitingStart) t.waitingStart = todayStr();
   await persist(); renderMain();
 }
-async function toggleStar(id){
+async function quickDefer(id){
   const t = DB.tasks.find(x=>x.id===id); if(!t) return;
-  t.isToday = !t.isToday;
-  await persist(); renderMain();
+  const base = t.scheduledDate || todayStr();
+  t.scheduledDate = addDaysToDate(base, 1);
+  await persist(); renderMain(); toast('已延到明天');
 }
 async function deleteTask(id){
-  if(!confirm('確定要刪除這個工作嗎？')) return;
+  if(!(await customConfirm('確定要刪除這個工作嗎？'))) return;
   DB.tasks = DB.tasks.filter(t=>t.id!==id);
-  await persist(); renderMain();
+  await persist(); closeDrawer(); renderMain(); toast('已刪除');
 }
 
 /* ============================================================
-   Dashboard
+   Today
 ============================================================ */
-function viewDashboard(){
+function viewToday(){
   const t = todayStr();
   const tasks = activeTasks();
   const todayList = tasks.filter(x=> x.status!=='done' && (
-    x.scheduledDate===t || x.dueDate===t || isOverdue(x) && x.priority==='high' || x.waitingFollowUp===t
+    x.scheduledDate===t || x.dueDate===t || x.isToday || (x.status==='waiting' && x.waitingFollowUp===t)
   ));
-  const starList = tasks.filter(x=>x.isToday && x.status!=='done');
   const overdue = tasks.filter(isOverdue);
-  const dueSoon = tasks.filter(x=>isDueSoon(x,3) && !isOverdue(x));
-  const waitingLong = tasks.filter(x=>x.status==='waiting' && x.waitingStart && daysDiff(x.waitingStart) <= -7);
+  const dueSoon = tasks.filter(x=>isDueSoon(x,2) && !isOverdue(x) && x.dueDate!==t);
   const followToday = tasks.filter(x=>x.status==='waiting' && x.waitingFollowUp===t);
-  const staleProjects = DB.projects.filter(p=>p.status!=='done' && p.dueDate ? true : true).filter(p=>{
+  const staleProjects = DB.projects.filter(p=>{
+    if(p.status==='done') return false;
     const rel = DB.tasks.filter(x=>x.projectId===p.id);
     const last = rel.reduce((acc,x)=> !acc || (x.scheduledDate||x.createdAt) > acc ? (x.scheduledDate||x.createdAt) : acc, p.startDate);
-    return daysDiff(last) !== null && daysDiff(last) <= -14 && p.status!=='done';
+    return daysDiff(last)!==null && daysDiff(last) <= -14;
   });
-  const attentionItems = [...overdue.map(x=>({t:x,r:'已逾期'})), ...dueSoon.map(x=>({t:x,r:'即將截止'})), ...waitingLong.map(x=>({t:x,r:'等待超過 7 天'})), ...followToday.map(x=>({t:x,r:'今天該追蹤'}))];
+  const nearConflicts = upcomingMyEvents(14).map(e=>({e, warns:checkConflicts(e.startDate||e.date, e.endDate)})).filter(x=>x.warns.length);
 
-  const week = [...Array(7)].map((_,i)=>{ const d=new Date(); d.setDate(d.getDate()+i); return d.toISOString().slice(0,10); });
-  const weekTasks = week.map(d=>({date:d, items: tasks.filter(x=> (x.scheduledDate===d || x.dueDate===d) && x.status!=='done')}));
+  const attentionLines = [];
+  overdue.forEach(x=>attentionLines.push({t:x, cls:'urgent', txt:`${x.title} 已逾期`}));
+  dueSoon.forEach(x=>attentionLines.push({t:x, cls:'warn', txt:`${x.title} 即將截止（${fmtDate(x.dueDate)}）`}));
+  followToday.forEach(x=>attentionLines.push({t:x, cls:'warn', txt:`${x.waitingFor||'對方'} 的「${x.title}」今天需要追蹤`}));
+  staleProjects.forEach(p=>attentionLines.push({p, cls:'warn', txt:`專案「${p.name}」超過 14 天沒有更新`}));
+  nearConflicts.forEach(({e,warns})=>warns.forEach(w=>attentionLines.push({e, cls:w.level==='high'?'urgent':'warn', txt:`「${e.title}」${w.text}`})));
 
-  const doingProjects = DB.projects.filter(p=>p.status==='doing'||p.status==='進行中'||!p.status||p.status==='doing');
+  // 接下來：即將發生的活動 + 準備建議
+  const events = upcomingMyEvents(45).slice(0,5);
+  const prepIds = new Set(prepSuggestions(45).map(e=>e.id));
+
+  const count = todayList.length;
+  const followCount = followToday.length;
+  let summary = count===0 ? '今天沒有排定的工作，找點想推進的事情吧。' : `今天有 ${count} 件事情值得處理`;
+  if(count>0 && followCount>0) summary += `，${followCount} 件事情需要追蹤。`;
+  else if(count>0) summary += '。';
 
   return `
-  <div class="stat-row">
-    <div class="stat-card"><div class="n">${t.slice(5)}</div><div class="l">今天日期</div></div>
-    <div class="stat-card"><div class="n">${todayList.length}</div><div class="l">今天待辦</div></div>
-    <div class="stat-card"><div class="n">${weekTasks.reduce((a,d)=>a+d.items.length,0)}</div><div class="l">本週即將到期</div></div>
-    <div class="stat-card ${overdue.length?'warn':''}"><div class="n">${overdue.length}</div><div class="l">已逾期</div></div>
-    <div class="stat-card"><div class="n">${tasks.filter(x=>x.status==='waiting').length}</div><div class="l">等待追蹤</div></div>
-    <div class="stat-card"><div class="n">${DB.projects.filter(p=>p.status==='doing').length}</div><div class="l">進行中專案</div></div>
+  <div class="page-title">${new Date().toLocaleDateString('zh-TW',{month:'long',day:'numeric',weekday:'short'})}</div>
+  <div class="page-sub">${summary}</div>
+
+  <div class="section-label">今天</div>
+  <div class="list-plain">
+    ${todayList.length? todayList.sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999')).map(x=>taskRowHtml(x)).join('') : '<div class="empty-note">沒有安排 — 到 Inbox 或 Tasks 找點事情來做，或享受空檔。</div>'}
   </div>
 
-  <div class="section-title">🔥 今天要做</div>
-  <div class="card-list">${todayList.length? todayList.map(x=>taskCardHtml(x)).join('') : '<div class="empty-note">今天沒有排定或到期的工作 — 很好！</div>'}</div>
-
-  <div class="section-title">⭐ 今日最重要</div>
-  <div class="toolbar"><span class="empty-note">從任何工作卡片點「☆ 標為今日重點」即可加入這裡（建議 3–5 件）</span></div>
-  <div class="card-list today-star-list">${starList.length? starList.map(x=>taskCardHtml(x)).join('') : '<div class="empty-note">尚未指定今日最重要的工作</div>'}</div>
-
-  <div class="section-title">⚠️ 需要注意</div>
-  <div class="card-list">
-    ${attentionItems.length ? attentionItems.map(({t:x,r})=>`
-      <div class="item-card attention-card">
-        <div class="item-top"><div><div class="item-title">${escapeHtml(x.title)}</div><div class="item-sub">${escapeHtml(x.category)} · <b>${r}</b></div></div></div>
-        <div class="actions-row">
-          <button onclick="openTaskModal('${x.id}')">編輯</button>
-          ${x.status!=='done'?`<button onclick="quickComplete('${x.id}')">☑ 完成</button>`:''}
-        </div>
-      </div>`).join('') : '<div class="empty-note">目前沒有需要特別注意的事項</div>'}
-    ${staleProjects.length ? staleProjects.map(p=>`
-      <div class="item-card attention-card">
-        <div class="item-top"><div><div class="item-title">專案：${escapeHtml(p.name)}</div><div class="item-sub">${escapeHtml(p.category)} · 超過 14 天沒有更新</div></div></div>
-        <div class="actions-row"><button onclick="openProjectModal('${p.id}')">查看專案</button></div>
-      </div>`).join('') : ''}
-  </div>
-
-  <div class="section-title">📅 本週</div>
-  <div class="card-list">
-    ${weekTasks.map(d=>`
-      <div class="item-card" style="border-left-color:var(--teal-pale)">
-        <div class="item-sub mono">${d.date}${d.date===t?'（今天）':''}</div>
-        ${d.items.length? d.items.map(x=>`<div style="font-size:12.5px;padding:2px 0;">${STATUS_META[x.status].icon} ${escapeHtml(x.title)} <span class="empty-note">(${escapeHtml(x.category)})</span></div>`).join('') : '<div class="empty-note">—</div>'}
+  ${attentionLines.length ? `
+  <div class="section-label">需要注意</div>
+  <div class="list-plain">
+    ${attentionLines.map(a=>`
+      <div class="attn-line ${a.cls}" onclick="${a.t?`openTaskDrawer('${a.t.id}')`:(a.p?`openProjectDrawer('${a.p.id}')`:(a.e?`openEventModal('${a.e.id}')`:''))}">
+        <span class="mk">${a.cls==='urgent'?'⚠':'↗'}</span>${escapeHtml(a.txt)}
       </div>`).join('')}
-  </div>
+  </div>` : ''}
 
-  <div class="section-title">🚧 進行中專案</div>
-  <div class="grid3">
-    ${doingProjects.length ? doingProjects.map(p=>`
-      <div class="item-card" onclick="openProjectModal('${p.id}')" style="cursor:pointer;">
-        <div class="item-title">${escapeHtml(p.name)}</div>
-        <div class="item-sub">${escapeHtml(p.category)}</div>
-        <div style="margin:6px 0;background:var(--paper-line);height:6px;border-radius:3px;overflow:hidden;">
-          <div style="background:var(--teal);height:100%;width:${projectProgressDisplay(p)}%;"></div>
+  <div class="section-label">接下來需要準備 <button class="link-btn" style="margin-left:8px;" onclick="switchTab('calendar')">查看全部</button></div>
+  <div class="list-plain">
+    ${events.length ? events.map(e=>{
+      const dd = daysDiff(eventDate(e));
+      const isPrep = prepIds.has(e.id);
+      const tpl = DB.prepTemplates.find(x=>x.id===e.templateId);
+      let subText = `${fmtDate(eventDate(e))} · 還有 ${dd} 天`;
+      if(isPrep && tpl) subText += ` · 依「${escapeHtml(tpl.name)}」範本建議這段時間開始準備`;
+      else if(e.templateId && eventHasTasks(e.id)) subText += ` · 準備工作已建立`;
+      return `
+      <div class="up-row">
+        <div class="up-main" onclick="openEventModal('${e.id}')">
+          <div class="up-title">${escapeHtml(e.title)}</div>
+          <div class="up-sub ${isPrep?'prep':''}">${subText}</div>
         </div>
-        <div class="item-sub">進度 ${projectProgressDisplay(p)}% · 截止 ${fmtDate(p.dueDate)}</div>
-        <div class="item-notes">下一步：${escapeHtml(p.nextAction||'尚未設定')}</div>
-      </div>`).join('') : '<div class="empty-note">目前沒有進行中的專案</div>'}
+        ${isPrep ? `<div class="up-action"><button onclick="openPrepModal('${e.id}')">開始準備</button></div>` : ''}
+      </div>`;
+    }).join('') : '<div class="empty-note">未來 45 天內沒有排定的活動</div>'}
   </div>
   `;
 }
@@ -470,66 +682,63 @@ function viewDashboard(){
    Inbox
 ============================================================ */
 function viewInbox(){
-  const inboxTasks = DB.tasks.filter(t=>t.status==='inbox');
+  const list = DB.tasks.filter(t=>t.status==='inbox');
   return `
-  <div class="section-title">📥 快速加入收件匣</div>
-  <div class="field" style="max-width:480px;">
-    <input type="text" id="inboxQuickInput" placeholder="想到什麼就打幾個字，按 Enter 直接記下…" onkeydown="if(event.key==='Enter')quickInboxAdd()">
+  <div class="page-title">Inbox</div>
+  <div class="page-sub">${list.length ? `還有 ${list.length} 件事情尚未整理` : '收件匣是空的'}</div>
+  <div class="d-field" style="max-width:420px;margin-bottom:26px;">
+    <input type="text" class="qa-input" id="inboxQuickInput" placeholder="要記下什麼？" onkeydown="if(event.key==='Enter')quickInboxAdd()">
   </div>
-  <div class="section-title">待整理（${inboxTasks.length}）</div>
-  <div class="empty-note" style="margin-bottom:10px;">整理時依序決定：這是什麼業務？屬於哪個專案？下一步是什麼？何時做？有沒有截止日？優先程度？</div>
-  <div class="card-list">
-    ${inboxTasks.length ? inboxTasks.map(t=>`
-      <div class="item-card st-inbox">
-        <div class="item-title">${escapeHtml(t.title)}</div>
-        <div class="item-sub">建立於 ${t.createdAt}</div>
-        <div class="actions-row">
-          <button onclick="openTaskModal('${t.id}', {inboxSort:true})">📝 整理這筆</button>
-          <button class="del" onclick="deleteTask('${t.id}')">刪除</button>
-        </div>
-      </div>`).join('') : '<div class="empty-note">收件匣是空的，太棒了！</div>'}
+  <div class="list-plain">
+    ${list.length ? list.map(t=>`
+      <div class="task-row" onclick="openTaskDrawer('${t.id}',{inboxSort:true})">
+        <div class="task-check" onclick="event.stopPropagation()"></div>
+        <div class="task-main"><div class="task-title">${escapeHtml(t.title)}</div></div>
+        <div class="task-meta">整理 →</div>
+      </div>`).join('') : ''}
   </div>`;
 }
 async function quickInboxAdd(){
   const el = document.getElementById('inboxQuickInput');
   const title = el.value.trim();
   if(!title) return;
-  DB.tasks.push({ id:uid('t'), title, content:'', category:'', projectId:'', status:'inbox', priority:'mid',
-    createdAt:todayStr(), scheduledDate:'', dueDate:'', completedDate:'', nextAction:'', progress:0, notes:'', attachments:'', isToday:false });
-  await persist();
-  el.value='';
-  renderMain();
-  toast('已記下，繼續原本的工作吧');
+  DB.tasks.push({ id:uid('t'), title, categoryId:'', projectId:'', eventId:'', status:'inbox', priority:'mid',
+    createdAt:todayStr(), scheduledDate:'', dueDate:'', completedDate:'', nextAction:'', notes:'', isToday:false, academicYear:computeAcademicYear() });
+  await persist(); el.value=''; renderMain(); toast('已記下');
 }
 
 /* ============================================================
    Tasks
 ============================================================ */
-let taskFilters = { cat:'全部', status:'全部', prio:'全部' };
+let taskFilters = { seg:'all', cat:'全部' };
 function viewTasks(){
   let list = activeTasks();
-  if(taskFilters.cat!=='全部') list = list.filter(t=>t.category===taskFilters.cat);
-  if(taskFilters.status!=='全部') list = list.filter(t=>t.status===taskFilters.status);
-  if(taskFilters.prio!=='全部') list = list.filter(t=>t.priority===taskFilters.prio);
-  list = list.sort((a,b)=> (a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
+  if(taskFilters.cat!=='全部') list = list.filter(t=>t.categoryId===taskFilters.cat);
+  if(taskFilters.seg==='doing') list = list.filter(t=>t.status==='doing'||t.status==='scheduled'||t.status==='checking');
+  else if(taskFilters.seg==='waiting') list = list.filter(t=>t.status==='waiting');
+  else if(taskFilters.seg==='done') list = list.filter(t=>t.status==='done');
+  list = list.sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
   return `
-  <div class="section-title">所有工作（${list.length}）<button class="icon-btn" style="margin-left:auto;background:var(--teal);color:#fff;border:none;" onclick="openTaskModal(null)">＋ 新增工作</button></div>
-  <div class="toolbar">
+  <div class="page-title">Tasks</div>
+  <div class="page-sub">所有工作，依狀態與分類篩選</div>
+  <div class="toolbar-line">
+    <input type="text" id="taskSearchBox" placeholder="搜尋工作…" onkeydown="if(event.key==='Enter')doSearchWith(this.value)">
     <select class="filter" onchange="taskFilters.cat=this.value;renderMain()">
-      <option ${taskFilters.cat==='全部'?'selected':''}>全部</option>
-      ${DB.categories.map(c=>`<option ${taskFilters.cat===c?'selected':''}>${c}</option>`).join('')}
+      <option value="全部" ${taskFilters.cat==='全部'?'selected':''}>全部分類</option>
+      ${activeCategories().map(c=>`<option value="${c.id}" ${taskFilters.cat===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}
     </select>
-    <select class="filter" onchange="taskFilters.status=this.value;renderMain()">
-      <option value="全部">全部狀態</option>
-      ${Object.entries(STATUS_META).map(([k,v])=>`<option value="${k}" ${taskFilters.status===k?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
-    </select>
-    <select class="filter" onchange="taskFilters.prio=this.value;renderMain()">
-      <option value="全部">全部優先度</option>
-      ${Object.entries(PRIO_META).map(([k,v])=>`<option value="${k}" ${taskFilters.prio===k?'selected':''}>優先${v}</option>`).join('')}
-    </select>
+    <div class="spacer"></div>
+    <button class="btn primary" onclick="openQuickAdd()">＋ 新增</button>
   </div>
-  <div class="card-list">${list.length? list.map(t=>taskCardHtml(t)).join('') : '<div class="empty-note">沒有符合條件的工作</div>'}</div>
-  `;
+  <div class="segmented">
+    <button class="${taskFilters.seg==='all'?'active':''}" onclick="taskFilters.seg='all';renderMain()">全部</button>
+    <button class="${taskFilters.seg==='doing'?'active':''}" onclick="taskFilters.seg='doing';renderMain()">進行中</button>
+    <button class="${taskFilters.seg==='waiting'?'active':''}" onclick="taskFilters.seg='waiting';renderMain()">等待</button>
+    <button class="${taskFilters.seg==='done'?'active':''}" onclick="taskFilters.seg='done';renderMain()">已完成</button>
+  </div>
+  <div class="list-plain">
+    ${list.length? list.map(t=>taskRowHtml(t)).join('') : '<div class="empty-note">沒有符合條件的工作</div>'}
+  </div>`;
 }
 
 /* ============================================================
@@ -538,106 +747,134 @@ function viewTasks(){
 function viewProjects(){
   const list = DB.projects.slice().sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
   return `
-  <div class="section-title">專案（${list.length}）<button class="icon-btn" style="margin-left:auto;background:var(--teal);color:#fff;border:none;" onclick="openProjectModal(null)">＋ 新增專案</button></div>
-  <div class="grid2">
-    ${list.length ? list.map(p=>{
-      const rel = DB.tasks.filter(t=>t.projectId===p.id && t.status!=='archived');
-      return `
-      <div class="item-card">
-        <div class="item-top">
-          <div>
-            <div class="item-title">${escapeHtml(p.name)} ${p.isDemo?'<span class="demo-tag">DEMO</span>':''}</div>
-            <div class="item-sub">${escapeHtml(p.category)} · ${fmtDate(p.startDate)} → ${fmtDate(p.dueDate)}</div>
-          </div>
-          <span class="pill cat">${p.status||'doing'}</span>
-        </div>
-        <div style="margin:8px 0 4px;background:var(--paper-line);height:6px;border-radius:3px;overflow:hidden;">
-          <div style="background:var(--teal);height:100%;width:${projectProgressDisplay(p)}%;"></div>
-        </div>
-        <div class="item-sub">進度 ${projectProgressDisplay(p)}%（${rel.filter(t=>t.status==='done').length}/${rel.length} 項工作完成）</div>
-        <div class="item-notes">下一步：${escapeHtml(p.nextAction||'尚未設定 ⚠️')}</div>
-        <div class="actions-row">
-          <button onclick="openProjectModal('${p.id}')">編輯專案</button>
-          <button onclick="addTaskUnderProject('${p.id}')">＋ 新增工作到此專案</button>
-        </div>
-        ${rel.length? `<div style="margin-top:8px;border-top:1px dashed var(--paper-line);padding-top:8px;">
-          ${rel.slice(0,5).map(t=>`<div style="font-size:12px;padding:2px 0;">${STATUS_META[t.status].icon} ${escapeHtml(t.title)}</div>`).join('')}
-          ${rel.length>5?`<div class="empty-note">還有 ${rel.length-5} 項…</div>`:''}
-        </div>`:''}
-      </div>`;
-    }).join('') : '<div class="empty-note">尚未建立任何專案</div>'}
+  <div class="page-title">Projects</div>
+  <div class="page-sub">${list.length} 個專案</div>
+  <div class="toolbar-line"><div class="spacer"></div><button class="btn primary" onclick="openProjectModal(null)">＋ 新增專案</button></div>
+  <div class="list-plain">
+    ${list.length? list.map(p=>`
+      <div class="proj-row" onclick="openProjectDrawer('${p.id}')">
+        <div class="proj-name">${escapeHtml(p.name)}<span class="proj-cat">${escapeHtml(catName(p.categoryId))}</span></div>
+        <div class="proj-bar"><div class="proj-bar-fill" style="width:${projectProgressDisplay(p)}%;"></div></div>
+        <div class="proj-foot"><span>下一步：${escapeHtml(p.nextAction||'尚未設定')}</span><span>${fmtDate(p.dueDate)||'—'}</span></div>
+      </div>`).join('') : '<div class="empty-note">尚未建立任何專案</div>'}
   </div>`;
 }
-function addTaskUnderProject(pid){
-  openTaskModal(null, {presetProjectId:pid});
+function openProjectDrawer(id){
+  const p = DB.projects.find(x=>x.id===id); if(!p) return;
+  const rel = DB.tasks.filter(t=>t.projectId===id && t.status!=='archived');
+  const relMeet = DB.meetings.filter(m=>m.projectId===id);
+  const relRes = DB.results.filter(r=>r.projectId===id);
+  const relEvents = DB.events.filter(e=>e.relatedProjectId===id);
+  openDrawer(`
+    <button class="drawer-close" onclick="closeDrawer()">×</button>
+    <h2>${escapeHtml(p.name)}</h2>
+    <div class="task-sub" style="margin-bottom:10px;">${escapeHtml(catName(p.categoryId))} · ${fmtDate(p.startDate)} – ${fmtDate(p.dueDate)} · ${escapeHtml(p.academicYear||'')}</div>
+    <div class="proj-bar"><div class="proj-bar-fill" style="width:${projectProgressDisplay(p)}%;"></div></div>
+    <div class="task-sub" style="margin:6px 0 16px;">進度 ${projectProgressDisplay(p)}%</div>
+    ${p.description?`<div style="font-size:13.5px;margin-bottom:14px;">${escapeHtml(p.description)}</div>`:''}
+    <div class="d-field"><label>下一個重要行動</label><div style="font-size:13.5px;">${escapeHtml(p.nextAction||'尚未設定')}</div></div>
+
+    ${relEvents.length?`<div class="d-section-label">相關活動（${relEvents.length}）</div>
+    <div class="list-plain">${relEvents.map(e=>`<div class="task-row" onclick="closeDrawer();openEventModal('${e.id}')"><div class="task-main"><div class="task-title">${escapeHtml(e.title)}</div></div><div class="task-meta">${fmtDate(eventDate(e))}</div></div>`).join('')}</div>`:''}
+
+    <div class="d-section-label">相關工作（${rel.length}）</div>
+    <div class="list-plain">${rel.map(t=>taskRowHtml(t,{showCat:false})).join('')||'<div class="empty-note">尚無工作，點下方新增</div>'}</div>
+    <button class="link-btn" style="margin-top:8px;" onclick="closeDrawer();openQuickAdd({presetProjectId:'${p.id}'})">＋ 新增工作到此專案</button>
+
+    ${relMeet.length?`<div class="d-section-label">相關會議（${relMeet.length}）</div>
+    <div class="list-plain">${relMeet.map(m=>`<div class="task-row" onclick="closeDrawer();openMeetingModal('${m.id}')"><div class="task-main"><div class="task-title">${escapeHtml(m.name)}</div></div><div class="task-meta">${m.date}</div></div>`).join('')}</div>`:''}
+
+    ${relRes.length?`<div class="d-section-label">相關成果（${relRes.length}）</div>
+    <div class="list-plain">${relRes.map(r=>`<div class="task-row" onclick="closeDrawer();openResultModal('${r.id}')"><div class="task-main"><div class="task-title">${escapeHtml(r.title)}</div></div><div class="task-meta">${r.date}</div></div>`).join('')}</div>`:''}
+
+    <div class="drawer-actions">
+      <button class="btn danger" onclick="deleteProject('${p.id}')">刪除專案</button>
+      <button class="btn" onclick="closeDrawer();openProjectModal('${p.id}')">編輯</button>
+    </div>
+  `);
+}
+function openProjectModal(id){
+  const p = id ? DB.projects.find(x=>x.id===id) : { id:'', name:'', categoryId:'', description:'', startDate:todayStr(), dueDate:'', status:'doing', progressOverride:'', nextAction:'', academicYear:computeAcademicYear() };
+  openModal(`
+    <h2>${id?'編輯專案':'新增專案'}</h2>
+    <div class="d-field"><label>專案名稱</label><input type="text" id="pj-name" value="${escapeHtml(p.name)}"></div>
+    <div class="d-row2">
+      <div class="d-field"><label>業務分類</label><select id="pj-cat">${catOptionsHtml(p.categoryId)}</select></div>
+      <div class="d-field"><label>學年度</label><input type="text" id="pj-year" value="${escapeHtml(p.academicYear||computeAcademicYear())}"></div>
+    </div>
+    <div class="d-field"><label>狀態</label><select id="pj-status">
+      <option value="doing" ${p.status==='doing'?'selected':''}>進行中</option>
+      <option value="planning" ${p.status==='planning'?'selected':''}>規劃中</option>
+      <option value="paused" ${p.status==='paused'?'selected':''}>暫停</option>
+      <option value="done" ${p.status==='done'?'selected':''}>已完成</option>
+    </select></div>
+    <div class="d-field"><label>說明</label><textarea id="pj-desc">${escapeHtml(p.description||'')}</textarea></div>
+    <div class="d-row2">
+      <div class="d-field"><label>開始日期</label><input type="date" id="pj-start" value="${p.startDate||''}"></div>
+      <div class="d-field"><label>截止日期</label><input type="date" id="pj-due" value="${p.dueDate||''}"></div>
+    </div>
+    <div class="d-field"><label>下一個重要行動</label><input type="text" id="pj-next" value="${escapeHtml(p.nextAction||'')}"></div>
+    <div class="d-field"><label>手動調整進度 %（留空則自動依工作完成比例計算）</label><input type="number" min="0" max="100" id="pj-progress" value="${p.progressOverride??''}"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn primary" onclick="saveProjectModal('${id||''}')">儲存</button>
+    </div>
+  `);
+}
+async function saveProjectModal(id){
+  const name = document.getElementById('pj-name').value.trim();
+  if(!name){ toast('請輸入專案名稱'); return; }
+  const progressVal = document.getElementById('pj-progress').value;
+  const data = {
+    name, categoryId: document.getElementById('pj-cat').value, status: document.getElementById('pj-status').value,
+    academicYear: document.getElementById('pj-year').value, description: document.getElementById('pj-desc').value,
+    startDate: document.getElementById('pj-start').value, dueDate: document.getElementById('pj-due').value,
+    nextAction: document.getElementById('pj-next').value, progressOverride: progressVal===''? '' : Number(progressVal)
+  };
+  if(id){ const idx=DB.projects.findIndex(x=>x.id===id); if(idx>-1) DB.projects[idx]={...DB.projects[idx],...data}; }
+  else DB.projects.push({ id:uid('p'), ...data });
+  await persist(); closeModal(); closeDrawer(); renderMain(); toast('已儲存');
+}
+async function deleteProject(id){
+  if(!(await customConfirm('確定刪除此專案？（底下的工作不會被刪除，但會取消關聯）'))) return;
+  DB.projects = DB.projects.filter(p=>p.id!==id);
+  DB.tasks.forEach(t=>{ if(t.projectId===id) t.projectId=''; });
+  await persist(); closeDrawer(); renderMain(); toast('已刪除');
 }
 
 /* ============================================================
-   Business overview
-============================================================ */
-function viewBusiness(){
-  return `
-  <div class="section-title">業務總覽</div>
-  <div class="grid3">
-    ${DB.categories.map(c=>{
-      const tks = activeTasks().filter(t=>t.category===c);
-      const notDone = tks.filter(t=>t.status!=='done');
-      return `<div class="biz-card" onclick="showBusinessDetail('${c.replace(/'/g,"\\'")}')">
-        <div>${escapeHtml(c)}</div>
-        <div class="n">${notDone.length}</div>
-        <div class="empty-note">未完成工作</div>
-      </div>`;
-    }).join('')}
-  </div>
-  <div id="bizDetail"></div>
-  `;
-}
-function showBusinessDetail(cat){
-  const tks = activeTasks().filter(t=>t.category===cat);
-  const projs = DB.projects.filter(p=>p.category===cat);
-  const meets = DB.meetings.filter(m=>m.category===cat);
-  const results = DB.results.filter(r=>r.category===cat);
-  const html = `
-    <div class="section-title">📂 ${escapeHtml(cat)}</div>
-    <h3 style="font-size:13px;margin:14px 0 6px;">進行中專案（${projs.filter(p=>p.status==='doing').length}）</h3>
-    <div class="card-list">${projs.filter(p=>p.status==='doing').map(p=>taskCardLike(p.name,p.nextAction)).join('')||'<div class="empty-note">無</div>'}</div>
-    <h3 style="font-size:13px;margin:14px 0 6px;">尚未完成工作（${tks.filter(t=>t.status!=='done').length}）</h3>
-    <div class="card-list">${tks.filter(t=>t.status!=='done').map(t=>taskCardHtml(t)).join('')||'<div class="empty-note">無</div>'}</div>
-    <h3 style="font-size:13px;margin:14px 0 6px;">等待事項（${tks.filter(t=>t.status==='waiting').length}）</h3>
-    <div class="card-list">${tks.filter(t=>t.status==='waiting').map(t=>taskCardHtml(t)).join('')||'<div class="empty-note">無</div>'}</div>
-    <h3 style="font-size:13px;margin:14px 0 6px;">已完成事項（${tks.filter(t=>t.status==='done').length}）</h3>
-    <div class="card-list">${tks.filter(t=>t.status==='done').map(t=>taskCardHtml(t)).join('')||'<div class="empty-note">無</div>'}</div>
-    <h3 style="font-size:13px;margin:14px 0 6px;">相關會議（${meets.length}）</h3>
-    <div class="card-list">${meets.map(m=>`<div class="item-card"><div class="item-title">${escapeHtml(m.name)}</div><div class="item-sub">${m.date}</div></div>`).join('')||'<div class="empty-note">無</div>'}</div>
-    <h3 style="font-size:13px;margin:14px 0 6px;">相關成果（${results.length}）</h3>
-    <div class="card-list">${results.map(r=>`<div class="item-card"><div class="item-title">${escapeHtml(r.title)}</div><div class="item-sub">${r.date}</div></div>`).join('')||'<div class="empty-note">無</div>'}</div>
-  `;
-  document.getElementById('bizDetail').innerHTML = html;
-}
-function taskCardLike(title, sub){
-  return `<div class="item-card"><div class="item-title">${escapeHtml(title)}</div><div class="item-notes">下一步：${escapeHtml(sub||'尚未設定')}</div></div>`;
-}
-
-/* ============================================================
-   Calendar
+   Calendar（月曆 + 學期雷達，含 My/School 雙層）
 ============================================================ */
 let calYear = new Date().getFullYear();
-let calMonth = new Date().getMonth(); // 0-based
+let calMonth = new Date().getMonth();
+let calShowMine = true, calShowSchool = true;
+let calViewMode = 'month';
 function viewCalendar(){
   return `
-  <div class="cal-head">
-    <button class="icon-btn" style="color:var(--ink);border-color:var(--ink-faint);" onclick="calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderMain()">← 上個月</button>
-    <div class="section-title" style="margin:0;">${calYear} 年 ${calMonth+1} 月</div>
-    <button class="icon-btn" style="color:var(--ink);border-color:var(--ink-faint);" onclick="calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderMain()">下個月 →</button>
+  <div class="page-title">Calendar</div>
+  <div class="page-sub">事情什麼時候發生（Event），以及為此要做什麼（Task）</div>
+  <div class="segmented">
+    <button class="${calViewMode==='month'?'active':''}" onclick="calViewMode='month';renderMain()">月曆</button>
+    <button class="${calViewMode==='semester'?'active':''}" onclick="calViewMode='semester';renderMain()">學期雷達</button>
   </div>
-  <div class="toolbar"><button class="icon-btn" style="color:var(--ink);border-color:var(--ink-faint);" onclick="openEventModal(null)">＋ 新增 Event</button></div>
-  <div id="calGridWrap"></div>
-  <div id="calDayDetail"></div>
+  <div class="cal-toggles" style="margin-top:14px;">
+    <label><input type="checkbox" ${calShowMine?'checked':''} onchange="calShowMine=this.checked;renderMain()"> 我的活動</label>
+    <label><input type="checkbox" ${calShowSchool?'checked':''} onchange="calShowSchool=this.checked;renderMain()"> 學校行事曆</label>
+  </div>
+  ${calViewMode==='month' ? `
+    <div class="cal-head">
+      <button class="cal-nav" onclick="calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderMain()">← 上個月</button>
+      <div style="font-size:14px;font-weight:600;">${calYear} / ${calMonth+1}</div>
+      <button class="cal-nav" onclick="calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderMain()">下個月 →</button>
+    </div>
+    <div id="calGridWrap"></div>
+    <div id="calDayDetail" style="margin-top:20px;"></div>
+    <div style="margin-top:18px;"><button class="btn" onclick="openEventModal(null)">＋ 新增活動</button></div>
+  ` : renderSemesterView()}
   `;
 }
 function renderCalendarGrid(){
-  const wrap = document.getElementById('calGridWrap');
-  if(!wrap) return;
+  const wrap = document.getElementById('calGridWrap'); if(!wrap) return;
   const first = new Date(calYear, calMonth, 1);
   const startDow = first.getDay();
   const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
@@ -649,556 +886,642 @@ function renderCalendarGrid(){
   const dow = ['日','一','二','三','四','五','六'];
   let html = `<div class="cal-grid">` + dow.map(d=>`<div class="cal-dow">${d}</div>`).join('');
   cells.forEach(d=>{
-    if(d===null){ html += `<div class="cal-cell other-month"></div>`; return; }
+    if(d===null){ html += `<div class="cal-cell other"></div>`; return; }
     const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const evs = DB.events.filter(e=>e.date===dateStr);
-    const tks = DB.tasks.filter(x=>(x.dueDate===dateStr||x.scheduledDate===dateStr) && x.status!=='archived');
-    html += `<div class="cal-cell ${dateStr===t?'today':''}" onclick="showCalDay('${dateStr}')">
+    const evs = calShowMine ? DB.events.filter(e=>{ const s=eventDate(e), en=e.endDate||s; return dateStr>=s && dateStr<=en; }) : [];
+    const ses = calShowSchool ? DB.schoolEvents.filter(e=>{ const en=e.endDate||e.startDate; return dateStr>=e.startDate && dateStr<=en; }) : [];
+    const tks = DB.tasks.filter(x=>(x.dueDate===dateStr||x.scheduledDate===dateStr) && x.status!=='archived' && x.status!=='done');
+    const hasConflict = evs.some(e=>checkConflicts(eventDate(e), e.endDate).length>0);
+    html += `<div class="cal-cell ${dateStr===t?'today':''} ${hasConflict?'conflict':''}" onclick="showCalDay('${dateStr}')">
       <div class="d-num">${d}</div>
-      ${evs.slice(0,2).map(e=>`<div class="cal-item ev">◆ ${escapeHtml(e.title)}</div>`).join('')}
-      ${tks.slice(0,3).map(x=>`<div class="cal-item tk">${escapeHtml(x.title)}</div>`).join('')}
-      ${(evs.length+tks.length)>5?`<div class="empty-note">…</div>`:''}
+      ${evs.slice(0,2).map(e=>`<div class="cal-item-txt"><span class="cal-dot ev"></span>${escapeHtml(e.title)}</div>`).join('')}
+      ${ses.slice(0,2).map(e=>`<div class="cal-item-txt school"><span class="cal-dot school"></span>${escapeHtml(e.title)}</div>`).join('')}
+      ${tks.slice(0,2).map(x=>`<div class="cal-item-txt"><span class="cal-dot"></span>${escapeHtml(x.title)}</div>`).join('')}
     </div>`;
   });
   html += `</div>`;
   wrap.innerHTML = html;
 }
 function showCalDay(dateStr){
-  const evs = DB.events.filter(e=>e.date===dateStr);
+  const evs = DB.events.filter(e=>{ const s=eventDate(e), en=e.endDate||s; return dateStr>=s && dateStr<=en; });
+  const ses = DB.schoolEvents.filter(e=>{ const en=e.endDate||e.startDate; return dateStr>=e.startDate && dateStr<=en; });
   const tks = DB.tasks.filter(x=>(x.dueDate===dateStr||x.scheduledDate===dateStr) && x.status!=='archived');
   document.getElementById('calDayDetail').innerHTML = `
-    <div class="section-title">${dateStr}</div>
-    <h3 style="font-size:13px;">Events</h3>
-    <div class="card-list">${evs.map(e=>`<div class="item-card"><div class="item-title">◆ ${escapeHtml(e.title)}</div><div class="item-sub">${escapeHtml(e.category)}</div>
-      <div class="actions-row"><button class="del" onclick="deleteEvent('${e.id}')">刪除</button></div></div>`).join('')||'<div class="empty-note">無</div>'}</div>
-    <h3 style="font-size:13px;margin-top:10px;">Tasks</h3>
-    <div class="card-list">${tks.map(x=>taskCardHtml(x)).join('')||'<div class="empty-note">無</div>'}</div>
-  `;
+    <div class="section-label">${dateStr}</div>
+    <div class="list-plain">
+      ${evs.map(e=>{
+        const warns = checkConflicts(eventDate(e), e.endDate);
+        return `<div class="task-row" onclick="openEventModal('${e.id}')">
+          <div class="task-main"><div class="task-title">${escapeHtml(e.title)}</div><div class="task-sub">${escapeHtml(catName(e.categoryId))}${warns.length?' · ⚠ 撞期':''}</div></div>
+        </div>`;
+      }).join('')}
+      ${ses.map(e=>`<div class="task-row"><div class="task-main"><div class="task-title">${escapeHtml(e.title)}<span class="impact-badge ${e.impactLevel}">${IMPACT_LABELS[e.impactLevel]||''}</span></div><div class="task-sub">學校行事曆</div></div></div>`).join('')}
+      ${tks.map(x=>taskRowHtml(x)).join('')}
+      ${(!evs.length && !ses.length && !tks.length)?'<div class="empty-note">這天沒有排定事項</div>':''}
+    </div>`;
 }
-async function deleteEvent(id){ DB.events = DB.events.filter(e=>e.id!==id); await persist(); renderMain(); }
+function renderSemesterView(){
+  const year = computeAcademicYear();
+  const now = new Date();
+  const months = [];
+  for(let i=0;i<12;i++){ const d=new Date(now.getFullYear(), now.getMonth()+i, 1); months.push(d); }
+  const html = months.map(mDate=>{
+    const y = mDate.getFullYear(), m = mDate.getMonth();
+    const monthStart = `${y}-${String(m+1).padStart(2,'0')}-01`;
+    const monthEnd = `${y}-${String(m+1).padStart(2,'0')}-31`;
+    const evs = calShowMine ? DB.events.filter(e=>{ const s=eventDate(e); return s>=monthStart && s<=monthEnd; }) : [];
+    const ses = calShowSchool ? DB.schoolEvents.filter(e=>e.startDate>=monthStart && e.startDate<=monthEnd) : [];
+    if(!evs.length && !ses.length) return '';
+    const lines = [
+      ...evs.map(e=>{ const warns=checkConflicts(eventDate(e),e.endDate); return {txt:`${fmtDate(eventDate(e))} ${e.title}`, cls: warns.length?'conflict':'mine', id:e.id, isMine:true}; }),
+      ...ses.map(e=>({txt:`${fmtDate(e.startDate)} ${e.title}（學校）`, cls:'school', id:e.id, isMine:false}))
+    ].sort((a,b)=>a.txt.localeCompare(b.txt));
+    return `<div class="sem-month"><h3>${y} 年 ${m+1} 月</h3>
+      ${lines.map(l=>`<div class="sem-line ${l.cls}" style="cursor:pointer;" onclick="${l.isMine?`openEventModal('${l.id}')`:''}">${escapeHtml(l.txt)}</div>`).join('')}
+    </div>`;
+  }).join('');
+  return `<div>${html || '<div class="empty-note">未來 12 個月內沒有排定的活動</div>'}</div>`;
+}
+async function deleteEvent(id){ DB.events = DB.events.filter(e=>e.id!==id); await persist(); closeModal(); renderMain(); }
+
+function openEventModal(id){
+  const e = id? DB.events.find(x=>x.id===id) : { id:'', title:'', startDate:todayStr(), endDate:'', categoryId:'', relatedProjectId:'', templateId:'', academicYear:computeAcademicYear() };
+  const warns = e.startDate ? checkConflicts(e.startDate, e.endDate, e.id) : [];
+  openModal(`
+    <h2>${id?'編輯活動':'新增活動'}</h2>
+    <div class="d-field"><label>活動名稱</label><input type="text" id="ev-title" value="${escapeHtml(e.title)}"></div>
+    <div class="d-row2">
+      <div class="d-field"><label>開始日期</label><input type="date" id="ev-start" value="${e.startDate||e.date||todayStr()}" onchange="refreshConflictWarn()"></div>
+      <div class="d-field"><label>結束日期（可留空）</label><input type="date" id="ev-end" value="${e.endDate||''}" onchange="refreshConflictWarn()"></div>
+    </div>
+    <div id="ev-conflict-area">${conflictWarnHtml(warns)}</div>
+    <div class="d-row2">
+      <div class="d-field"><label>業務分類</label><select id="ev-cat">${catOptionsHtml(e.categoryId)}</select></div>
+      <div class="d-field"><label>學年度</label><input type="text" id="ev-year" value="${escapeHtml(e.academicYear||computeAcademicYear())}"></div>
+    </div>
+    <div class="d-field"><label>相關專案</label><select id="ev-proj"><option value="">無</option>${DB.projects.map(p=>`<option value="${p.id}" ${e.relatedProjectId===p.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></div>
+    <div class="d-field"><label>對應準備範本（選填，系統會依此主動提醒準備）</label><select id="ev-tpl"><option value="">無</option>${DB.prepTemplates.map(tp=>`<option value="${tp.id}" ${e.templateId===tp.id?'selected':''}>${escapeHtml(tp.name)}</option>`).join('')}</select></div>
+    <div class="modal-actions">
+      ${id?`<button class="btn danger" onclick="deleteEvent('${id}')" style="margin-right:auto;">刪除</button>`:''}
+      ${id && e.templateId ? `<button class="btn" onclick="closeModal();openPrepModal('${id}')">查看準備建議</button>`:''}
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn primary" onclick="saveEventModal('${id||''}')">儲存</button>
+    </div>
+  `);
+}
+function conflictWarnHtml(warns){
+  if(!warns.length) return '';
+  return warns.map(w=>`<div class="conflict-warn ${w.level==='mild'?'mild':''}">⚠ ${escapeHtml(w.text)}</div>`).join('');
+}
+function refreshConflictWarn(){
+  const s = document.getElementById('ev-start').value;
+  const e = document.getElementById('ev-end').value;
+  const warns = checkConflicts(s, e);
+  document.getElementById('ev-conflict-area').innerHTML = conflictWarnHtml(warns);
+}
+async function saveEventModal(id){
+  const title = document.getElementById('ev-title').value.trim();
+  if(!title){ toast('請輸入名稱'); return; }
+  const data = {
+    title, startDate: document.getElementById('ev-start').value, endDate: document.getElementById('ev-end').value,
+    date: document.getElementById('ev-start').value, categoryId: document.getElementById('ev-cat').value,
+    academicYear: document.getElementById('ev-year').value, relatedProjectId: document.getElementById('ev-proj').value,
+    templateId: document.getElementById('ev-tpl').value
+  };
+  if(id){ const idx=DB.events.findIndex(x=>x.id===id); if(idx>-1) DB.events[idx]={...DB.events[idx],...data}; }
+  else DB.events.push({ id:uid('e'), ...data });
+  await persist(); closeModal(); renderMain(); toast('已儲存');
+}
 
 /* ============================================================
-   Results
+   Preparation Radar Modal
 ============================================================ */
-let resultFilterCat = '全部';
-function viewResults(){
-  let list = DB.results.slice();
-  if(resultFilterCat!=='全部') list = list.filter(r=>r.category===resultFilterCat);
-  list.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  return `
-  <div class="section-title">成果庫（${list.length}）<button class="icon-btn" style="margin-left:auto;background:var(--teal);color:#fff;border:none;" onclick="openResultModal(null)">＋ 新增成果</button></div>
-  <div class="toolbar">
-    <select class="filter" onchange="resultFilterCat=this.value;renderMain()">
-      <option ${resultFilterCat==='全部'?'selected':''}>全部</option>
-      ${DB.categories.map(c=>`<option ${resultFilterCat===c?'selected':''}>${c}</option>`).join('')}
-    </select>
-  </div>
-  <div class="card-list">
-    ${list.length? list.map(r=>`
-      <div class="item-card">
-        <div class="item-top"><div><div class="item-title">${escapeHtml(r.title)} ${r.isDemo?'<span class="demo-tag">DEMO</span>':''}</div>
-        <div class="item-sub">${r.date} · ${escapeHtml(r.category)}</div></div></div>
-        ${r.summary?`<div class="item-notes">${escapeHtml(r.summary)}</div>`:''}
-        <div class="actions-row"><button onclick="openResultModal('${r.id}')">查看/編輯</button><button class="del" onclick="deleteResult('${r.id}')">刪除</button></div>
-      </div>`).join('') : '<div class="empty-note">尚未建立任何成果紀錄</div>'}
-  </div>`;
+function openPrepModal(eventId){
+  const e = DB.events.find(x=>x.id===eventId); if(!e) return;
+  const tpl = DB.prepTemplates.find(x=>x.id===e.templateId);
+  if(!tpl){ toast('這個活動尚未設定準備範本'); return; }
+  const steps = tpl.steps.slice().sort((a,b)=>a.offset-b.offset).map(s=>({...s, date: addDaysToDate(eventDate(e), s.offset)}));
+  openModal(`
+    <h2>${escapeHtml(e.title)} — 建議準備工作</h2>
+    <div class="task-sub" style="margin-bottom:14px;">依「${escapeHtml(tpl.name)}」範本計算，活動日期 ${fmtDate(eventDate(e))}</div>
+    <div id="prepStepsArea">
+      ${steps.map((s,i)=>`
+        <div class="step-row">
+          <div class="step-check checked" data-idx="${i}" onclick="this.classList.toggle('checked')"></div>
+          <div class="step-fields">
+            <input type="text" value="${escapeHtml(s.title)}" data-idx="${i}" class="prep-title-input">
+            <div class="step-date">${s.date}（${s.offset<0?s.offset+' 天':'+'+s.offset+' 天'}）</div>
+          </div>
+        </div>`).join('')}
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">稍後處理</button>
+      <button class="btn primary" onclick='createPrepTasks("${eventId}", ${JSON.stringify(steps).replace(/'/g,"&#39;")})'>建立所選工作</button>
+    </div>
+  `);
 }
-async function deleteResult(id){ if(!confirm('確定刪除這筆成果？'))return; DB.results=DB.results.filter(r=>r.id!==id); await persist(); renderMain(); }
-
-/* ============================================================
-   Meetings
-============================================================ */
-function viewMeetings(){
-  const list = DB.meetings.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  return `
-  <div class="section-title">會議紀錄（${list.length}）<button class="icon-btn" style="margin-left:auto;background:var(--teal);color:#fff;border:none;" onclick="openMeetingModal(null)">＋ 新增會議</button></div>
-  <div class="card-list">
-    ${list.length? list.map(m=>`
-      <div class="item-card">
-        <div class="item-top"><div><div class="item-title">${escapeHtml(m.name)} ${m.isDemo?'<span class="demo-tag">DEMO</span>':''}</div>
-        <div class="item-sub">${m.date} · ${escapeHtml(m.type||'')} · ${escapeHtml(m.category||'')}</div></div></div>
-        ${m.decisions?`<div class="item-notes"><b>決議：</b>${escapeHtml(m.decisions)}</div>`:''}
-        ${m.followUps?`<div class="item-notes"><b>後續工作：</b>${escapeHtml(m.followUps)}</div>`:''}
-        <div class="actions-row">
-          <button onclick="openMeetingModal('${m.id}')">編輯</button>
-          ${m.followUps?`<button onclick="convertFollowUpsToTasks('${m.id}')">⚡ 後續工作轉為 Task</button>`:''}
-          <button class="del" onclick="deleteMeeting('${m.id}')">刪除</button>
-        </div>
-      </div>`).join('') : '<div class="empty-note">尚未建立任何會議紀錄</div>'}
-  </div>`;
-}
-async function deleteMeeting(id){ if(!confirm('確定刪除這筆會議？'))return; DB.meetings=DB.meetings.filter(m=>m.id!==id); await persist(); renderMain(); }
-async function convertFollowUpsToTasks(id){
-  const m = DB.meetings.find(x=>x.id===id); if(!m||!m.followUps) return;
-  const lines = m.followUps.split('\n').map(s=>s.trim()).filter(Boolean);
-  lines.forEach(line=>{
-    DB.tasks.push({ id:uid('t'), title:line, content:'源自會議：'+m.name, category:m.category||'', projectId:m.projectId||'',
-      status:'inbox', priority:'mid', createdAt:todayStr(), scheduledDate:'', dueDate:'', completedDate:'', nextAction:'', progress:0, notes:'', attachments:'', isToday:false });
+async function createPrepTasks(eventId, stepsJson){
+  const e = DB.events.find(x=>x.id===eventId); if(!e) return;
+  const steps = typeof stepsJson==='string' ? JSON.parse(stepsJson) : stepsJson;
+  const checks = document.querySelectorAll('#prepStepsArea .step-check');
+  const titleInputs = document.querySelectorAll('#prepStepsArea .prep-title-input');
+  let count = 0;
+  checks.forEach((chk, i)=>{
+    if(chk.classList.contains('checked')){
+      const title = titleInputs[i].value.trim() || steps[i].title;
+      DB.tasks.push({ id:uid('t'), title, categoryId:e.categoryId||'', projectId:e.relatedProjectId||'', eventId:e.id,
+        status:'scheduled', priority:'mid', createdAt:todayStr(), scheduledDate:'', dueDate:steps[i].date,
+        completedDate:'', nextAction:'', notes:'源自活動：'+e.title, isToday:false, academicYear:e.academicYear||computeAcademicYear() });
+      count++;
+    }
   });
-  await persist(); toast(`已將 ${lines.length} 項後續工作加入收件匣`); switchTab('inbox');
+  await persist(); closeModal(); renderMain();
+  toast(`已建立 ${count} 項準備工作`);
 }
 
 /* ============================================================
-   Weekly review
+   Library（成果 + 會議）
 ============================================================ */
-function viewReview(){
-  const t = todayStr();
-  const inboxCount = DB.tasks.filter(x=>x.status==='inbox').length;
-  const overdue = activeTasks().filter(isOverdue);
-  const waiting = activeTasks().filter(x=>x.status==='waiting');
-  const followToday = waiting.filter(x=>x.waitingFollowUp && daysDiff(x.waitingFollowUp)<=0);
-  const dueSoon14 = activeTasks().filter(x=>x.status!=='done' && x.dueDate && daysDiff(x.dueDate)>=0 && daysDiff(x.dueDate)<=14);
-  const doingProjects = DB.projects.filter(p=>p.status==='doing');
-  const noNext = doingProjects.filter(p=>!p.nextAction);
-  const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
-  const doneThisWeek = DB.tasks.filter(x=>x.status==='done' && x.completedDate && x.completedDate >= weekAgo.toISOString().slice(0,10));
-  const noResultLinked = doneThisWeek; // 簡化：本週完成但可能尚未寫成果
-
-  const lastReview = DB.reviews[DB.reviews.length-1];
-
+let libTab = 'results';
+let libCatFilter = '全部';
+function viewLibrary(){
   return `
-  <div class="section-title">🧭 每週回顧</div>
-  <div class="empty-note" style="margin-bottom:14px;">${lastReview? '上次回顧：'+lastReview.date : '這是你的第一次週回顧'}</div>
-
-  <div class="review-step"><h3>1. 📥 Inbox 還有什麼？（${inboxCount} 筆）</h3>
-    <div class="card-list">${DB.tasks.filter(x=>x.status==='inbox').map(x=>taskCardHtml(x)).join('')||'<div class="empty-note">收件匣是空的</div>'}</div>
+  <div class="page-title">Library</div>
+  <div class="page-sub">以前完成過什麼</div>
+  <div class="segmented">
+    <button class="${libTab==='results'?'active':''}" onclick="libTab='results';renderMain()">成果</button>
+    <button class="${libTab==='meetings'?'active':''}" onclick="libTab='meetings';renderMain()">會議</button>
   </div>
-  <div class="review-step"><h3>2. ⚠️ 有沒有逾期？（${overdue.length} 筆）</h3>
-    <div class="card-list">${overdue.map(x=>taskCardHtml(x)).join('')||'<div class="empty-note">沒有逾期項目</div>'}</div>
+  <div class="toolbar-line" style="margin-top:16px;">
+    <select class="filter" onchange="libCatFilter=this.value;renderMain()">
+      <option value="全部" ${libCatFilter==='全部'?'selected':''}>全部分類</option>
+      ${activeCategories().map(c=>`<option value="${c.id}" ${libCatFilter===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}
+    </select>
+    <div class="spacer"></div>
+    ${libTab==='results'?`<button class="btn primary" onclick="openResultModal(null)">＋ 新增成果</button>`:`<button class="btn primary" onclick="openMeetingModal(null)">＋ 新增會議</button>`}
   </div>
-  <div class="review-step"><h3>3. ⏳ 有哪些人在等待？（${waiting.length} 筆）</h3>
-    <div class="card-list">${waiting.map(x=>taskCardHtml(x)).join('')||'<div class="empty-note">目前沒有等待中的事項</div>'}</div>
-  </div>
-  <div class="review-step"><h3>4. 🔔 哪些需要追蹤？（今天，${followToday.length} 筆）</h3>
-    <div class="card-list">${followToday.map(x=>taskCardHtml(x)).join('')||'<div class="empty-note">今天沒有需要追蹤的等待事項</div>'}</div>
-  </div>
-  <div class="review-step"><h3>5. 📅 未來兩週有哪些截止？（${dueSoon14.length} 筆）</h3>
-    <div class="card-list">${dueSoon14.map(x=>taskCardHtml(x)).join('')||'<div class="empty-note">未來兩週沒有截止項目</div>'}</div>
-  </div>
-  <div class="review-step"><h3>6. 🚧 每個進行中專案下一步是什麼？${noNext.length?`（⚠️ ${noNext.length} 個尚未設定）`:''}</h3>
-    <div class="card-list">${doingProjects.map(p=>`
-      <div class="item-card ${!p.nextAction?'attention-card':''}">
-        <div class="item-title">${escapeHtml(p.name)}</div>
-        <div class="item-notes">下一步：${escapeHtml(p.nextAction||'⚠️ 尚未設定，請補上')}</div>
-        <div class="actions-row"><button onclick="openProjectModal('${p.id}')">編輯</button></div>
-      </div>`).join('')||'<div class="empty-note">目前沒有進行中的專案</div>'}</div>
-  </div>
-  <div class="review-step"><h3>7. ✅ 本週完成什麼？（${doneThisWeek.length} 筆）</h3>
-    <div class="card-list">${doneThisWeek.map(x=>taskCardHtml(x)).join('')||'<div class="empty-note">本週尚無完成項目</div>'}</div>
-  </div>
-  <div class="review-step"><h3>8. 🏆 有哪些成果尚未紀錄？</h3>
-    <div class="empty-note">檢視上方「本週完成」清單，重要的活動／專案／研習記得到「成果」頁新增紀錄。</div>
-  </div>
-  <div class="review-step"><h3>9. ⭐ 下週最重要的 3–5 件事情是什麼？</h3>
-    <div class="empty-note">到「工作」或「儀表板」點選 ☆ 標為今日重點，或直接在下方寫下重點方向：</div>
-    <textarea id="reviewNotes" placeholder="下週重點方向…">${lastReview? escapeHtml(lastReview.notes||''):''}</textarea>
-  </div>
-  <button class="add-btn-like" style="background:var(--teal);color:#fff;border:none;padding:10px 20px;border-radius:4px;font-family:'Courier New',monospace;" onclick="completeReview()">✓ 完成本週回顧</button>
+  ${libTab==='results'? libraryResultsList() : libraryMeetingsList()}
   `;
 }
-async function completeReview(){
-  const notes = document.getElementById('reviewNotes').value;
-  DB.reviews.push({ date: todayStr(), notes });
-  await persist();
-  toast('本週回顧已儲存，做得好！');
-  renderMain();
+function libraryResultsList(){
+  let list = DB.results.slice();
+  if(libCatFilter!=='全部') list = list.filter(r=>r.categoryId===libCatFilter);
+  list.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  return `<div class="list-plain">${list.length? list.map(r=>`
+    <div class="task-row" onclick="openResultModal('${r.id}')">
+      <div class="task-main"><div class="task-title">${escapeHtml(r.title)}${r.isDemo?'<span class="demo-tag">DEMO</span>':''}</div><div class="task-sub">${escapeHtml(catName(r.categoryId))} · ${escapeHtml(r.academicYear||'')}</div></div>
+      <div class="task-meta">${fmtDate(r.date)}</div>
+    </div>`).join('') : '<div class="empty-note">尚未建立任何成果紀錄</div>'}</div>`;
 }
-
-/* ============================================================
-   Search
-============================================================ */
-function doSearch(){
-  const q = document.getElementById('globalSearch').value.trim().toLowerCase();
-  if(!q){ return; }
-  const inStr = (s)=> (s||'').toLowerCase().includes(q);
-  const tasks = DB.tasks.filter(t=> inStr(t.title)||inStr(t.notes)||inStr(t.content)||inStr(t.category)||inStr(t.nextAction));
-  const projects = DB.projects.filter(p=> inStr(p.name)||inStr(p.description)||inStr(p.category)||inStr(p.notes));
-  const meetings = DB.meetings.filter(m=> inStr(m.name)||inStr(m.discussion)||inStr(m.decisions)||inStr(m.followUps)||inStr(m.category));
-  const results = DB.results.filter(r=> inStr(r.title)||inStr(r.summary)||inStr(r.content)||inStr(r.category)||inStr(r.reportText));
-  window._searchResultsHtml = `
-    <div class="section-title">🔍 搜尋「${escapeHtml(q)}」的結果</div>
-    <h3 style="font-size:13px;">工作（${tasks.length}）</h3>
-    <div class="card-list">${tasks.map(t=>taskCardHtml(t)).join('')||'<div class="empty-note">無</div>'}</div>
-    <h3 style="font-size:13px;margin-top:14px;">專案（${projects.length}）</h3>
-    <div class="card-list">${projects.map(p=>`<div class="item-card"><div class="item-title">${escapeHtml(p.name)}</div><div class="item-sub">${escapeHtml(p.category)}</div>
-      <div class="actions-row"><button onclick="openProjectModal('${p.id}')">查看</button></div></div>`).join('')||'<div class="empty-note">無</div>'}</div>
-    <h3 style="font-size:13px;margin-top:14px;">會議（${meetings.length}）</h3>
-    <div class="card-list">${meetings.map(m=>`<div class="item-card"><div class="item-title">${escapeHtml(m.name)}</div><div class="item-sub">${m.date}</div>
-      <div class="actions-row"><button onclick="openMeetingModal('${m.id}')">查看</button></div></div>`).join('')||'<div class="empty-note">無</div>'}</div>
-    <h3 style="font-size:13px;margin-top:14px;">成果（${results.length}）</h3>
-    <div class="card-list">${results.map(r=>`<div class="item-card"><div class="item-title">${escapeHtml(r.title)}</div><div class="item-sub">${r.date}</div>
-      <div class="actions-row"><button onclick="openResultModal('${r.id}')">查看</button></div></div>`).join('')||'<div class="empty-note">無</div>'}</div>
-  `;
-  currentTab='search';
-  renderNav();
-  document.getElementById('mainArea').innerHTML = window._searchResultsHtml;
+function libraryMeetingsList(){
+  let list = DB.meetings.slice();
+  if(libCatFilter!=='全部') list = list.filter(m=>m.categoryId===libCatFilter);
+  list.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  return `<div class="list-plain">${list.length? list.map(m=>`
+    <div class="task-row" onclick="openMeetingModal('${m.id}')">
+      <div class="task-main"><div class="task-title">${escapeHtml(m.name)}${m.isDemo?'<span class="demo-tag">DEMO</span>':''}</div><div class="task-sub">${escapeHtml(catName(m.categoryId))}</div></div>
+      <div class="task-meta">${fmtDate(m.date)}</div>
+    </div>`).join('') : '<div class="empty-note">尚未建立任何會議紀錄</div>'}</div>`;
 }
-
-/* ============================================================
-   Modals: Quick Add / Task / Project / Meeting / Result / Event / Category
-============================================================ */
-function openOverlay(html){ document.getElementById('modalBody').innerHTML = html; document.getElementById('overlay').classList.add('show'); }
-function closeOverlay(){ document.getElementById('overlay').classList.remove('show'); }
-
-function openQuickAdd(){
-  openOverlay(`
-    <h2>快速新增</h2>
-    <div class="field"><input type="text" id="qaTitle" class="qa-title-input" placeholder="輸入工作名稱，按 Enter 直接記入收件匣" autofocus onkeydown="if(event.key==='Enter')quickAddSubmit(false)"></div>
-    <div class="more-toggle" onclick="document.getElementById('qaMore').classList.toggle('hidden')">展開更多欄位 ▾</div>
-    <div id="qaMore" class="hidden">
-      <div class="row2">
-        <div class="field"><label>業務分類</label><select id="qaCat"><option value="">未分類</option>${DB.categories.map(c=>`<option>${c}</option>`).join('')}</select></div>
-        <div class="field"><label>優先程度</label><select id="qaPrio"><option value="high">高</option><option value="mid" selected>中</option><option value="low">低</option></select></div>
-      </div>
-      <div class="row2">
-        <div class="field"><label>排定日期</label><input type="date" id="qaSched"></div>
-        <div class="field"><label>截止日期</label><input type="date" id="qaDue"></div>
-      </div>
-      <div class="field"><label>備註</label><textarea id="qaNotes"></textarea></div>
-    </div>
-    <div class="modal-actions">
-      <button onclick="closeOverlay()">取消</button>
-      <div class="right"><button class="save" onclick="quickAddSubmit(true)">儲存</button></div>
-    </div>
-  `);
-  setTimeout(()=>document.getElementById('qaTitle').focus(), 50);
-}
-async function quickAddSubmit(fromButton){
-  const title = document.getElementById('qaTitle').value.trim();
-  if(!title){ return; }
-  const moreOpen = !document.getElementById('qaMore').classList.contains('hidden');
-  const task = { id:uid('t'), title, content:'', category: moreOpen?document.getElementById('qaCat').value:'', projectId:'',
-    status: moreOpen && (document.getElementById('qaSched').value||document.getElementById('qaDue').value) ? 'scheduled' : 'inbox',
-    priority: moreOpen?document.getElementById('qaPrio').value:'mid',
-    createdAt:todayStr(), scheduledDate: moreOpen?document.getElementById('qaSched').value:'', dueDate: moreOpen?document.getElementById('qaDue').value:'',
-    completedDate:'', nextAction:'', progress:0, notes: moreOpen?document.getElementById('qaNotes').value:'', attachments:'', isToday:false };
-  DB.tasks.push(task);
-  await persist();
-  closeOverlay();
-  renderMain();
-  toast('已加入');
-}
-
-function openTaskModal(id, opts={}){
-  const t = id ? DB.tasks.find(x=>x.id===id) : {
-    id:'', title:'', content:'', category: opts.presetProjectId ? (DB.projects.find(p=>p.id===opts.presetProjectId)||{}).category : '',
-    projectId: opts.presetProjectId||'', status:'scheduled', priority:'mid', createdAt:todayStr(), scheduledDate:'', dueDate:'',
-    completedDate:'', nextAction:'', progress:0, notes:'', attachments:'', isToday:false,
-    waitingFor:'', waitingWhat:'', waitingStart:'', waitingFollowUp:''
-  };
-  openOverlay(`
-    <h2>${id? '編輯工作':'新增工作'}</h2>
-    <div class="field"><label>工作名稱</label><input type="text" id="tk-title" value="${escapeHtml(t.title)}"></div>
-    <div class="field"><label>工作內容</label><textarea id="tk-content">${escapeHtml(t.content||'')}</textarea></div>
-    <div class="row2">
-      <div class="field"><label>業務分類</label><select id="tk-cat"><option value="">未分類</option>${DB.categories.map(c=>`<option ${t.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
-      <div class="field"><label>所屬專案</label><select id="tk-proj"><option value="">無</option>${DB.projects.map(p=>`<option value="${p.id}" ${t.projectId===p.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></div>
-    </div>
-    <div class="row3">
-      <div class="field"><label>狀態</label><select id="tk-status" onchange="document.getElementById('tk-waiting-fs').style.display=this.value==='waiting'?'block':'none'">
-        ${Object.entries(STATUS_META).map(([k,v])=>`<option value="${k}" ${t.status===k?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
-      </select></div>
-      <div class="field"><label>優先程度</label><select id="tk-prio">${Object.entries(PRIO_META).map(([k,v])=>`<option value="${k}" ${t.priority===k?'selected':''}>${v}</option>`).join('')}</select></div>
-      <div class="field"><label>進度 %</label><input type="number" id="tk-progress" min="0" max="100" value="${t.progress||0}"></div>
-    </div>
-    <div class="row3">
-      <div class="field"><label>預計執行日期</label><input type="date" id="tk-sched" value="${t.scheduledDate||''}"></div>
-      <div class="field"><label>截止日期</label><input type="date" id="tk-due" value="${t.dueDate||''}"></div>
-      <div class="field"><label>完成日期</label><input type="date" id="tk-done" value="${t.completedDate||''}"></div>
-    </div>
-    <div class="field"><label>下一步</label><input type="text" id="tk-next" value="${escapeHtml(t.nextAction||'')}"></div>
-    <fieldset id="tk-waiting-fs" style="display:${t.status==='waiting'?'block':'none'}">
-      <legend>⏳ 等待他人</legend>
-      <div class="row2">
-        <div class="field"><label>等待誰</label><input type="text" id="tk-wfor" value="${escapeHtml(t.waitingFor||'')}"></div>
-        <div class="field"><label>開始等待日期</label><input type="date" id="tk-wstart" value="${t.waitingStart||''}"></div>
-      </div>
-      <div class="field"><label>等待什麼</label><input type="text" id="tk-wwhat" value="${escapeHtml(t.waitingWhat||'')}"></div>
-      <div class="field"><label>預計追蹤日期</label><input type="date" id="tk-wfollow" value="${t.waitingFollowUp||''}"></div>
-    </fieldset>
-    <div class="field"><label>備註</label><textarea id="tk-notes">${escapeHtml(t.notes||'')}</textarea></div>
-    <div class="field"><label>附件／連結（每行一個）</label><textarea id="tk-attach">${escapeHtml(t.attachments||'')}</textarea></div>
-    <div class="modal-actions">
-      <div>${id?`<button class="del" onclick="deleteTask('${id}');closeOverlay();">刪除</button>`:''}</div>
-      <div class="right"><button onclick="closeOverlay()">取消</button><button class="save" onclick="saveTaskModal('${id||''}')">儲存</button></div>
-    </div>
-  `);
-}
-async function saveTaskModal(id){
-  const title = document.getElementById('tk-title').value.trim();
-  if(!title){ alert('請輸入工作名稱'); return; }
-  const status = document.getElementById('tk-status').value;
-  const data = {
-    title, content: document.getElementById('tk-content').value,
-    category: document.getElementById('tk-cat').value, projectId: document.getElementById('tk-proj').value,
-    status, priority: document.getElementById('tk-prio').value, progress: Number(document.getElementById('tk-progress').value)||0,
-    scheduledDate: document.getElementById('tk-sched').value, dueDate: document.getElementById('tk-due').value,
-    completedDate: status==='done' ? (document.getElementById('tk-done').value||todayStr()) : document.getElementById('tk-done').value,
-    nextAction: document.getElementById('tk-next').value, notes: document.getElementById('tk-notes').value,
-    attachments: document.getElementById('tk-attach').value,
-    waitingFor: document.getElementById('tk-wfor').value, waitingWhat: document.getElementById('tk-wwhat').value,
-    waitingStart: document.getElementById('tk-wstart').value, waitingFollowUp: document.getElementById('tk-wfollow').value
-  };
-  if(id){
-    const idx = DB.tasks.findIndex(x=>x.id===id);
-    if(idx>-1) DB.tasks[idx] = {...DB.tasks[idx], ...data};
-  } else {
-    DB.tasks.push({ id:uid('t'), createdAt: todayStr(), isToday:false, ...data });
-  }
-  await persist();
-  closeOverlay();
-  renderMain();
-}
-
-function openProjectModal(id){
-  const p = id ? DB.projects.find(x=>x.id===id) : { id:'', name:'', category:'', description:'', startDate:todayStr(), dueDate:'', status:'doing', progressOverride:'', nextAction:'', notes:'' };
-  openOverlay(`
-    <h2>${id?'編輯專案':'新增專案'}</h2>
-    <div class="field"><label>專案名稱</label><input type="text" id="pj-name" value="${escapeHtml(p.name)}"></div>
-    <div class="row2">
-      <div class="field"><label>業務分類</label><select id="pj-cat"><option value="">未分類</option>${DB.categories.map(c=>`<option ${p.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
-      <div class="field"><label>狀態</label><select id="pj-status">
-        <option value="doing" ${p.status==='doing'?'selected':''}>進行中</option>
-        <option value="planning" ${p.status==='planning'?'selected':''}>規劃中</option>
-        <option value="paused" ${p.status==='paused'?'selected':''}>暫停</option>
-        <option value="done" ${p.status==='done'?'selected':''}>已完成</option>
-      </select></div>
-    </div>
-    <div class="field"><label>說明</label><textarea id="pj-desc">${escapeHtml(p.description||'')}</textarea></div>
-    <div class="row2">
-      <div class="field"><label>開始日期</label><input type="date" id="pj-start" value="${p.startDate||''}"></div>
-      <div class="field"><label>截止日期</label><input type="date" id="pj-due" value="${p.dueDate||''}"></div>
-    </div>
-    <div class="field"><label>下一個重要行動</label><input type="text" id="pj-next" value="${escapeHtml(p.nextAction||'')}"></div>
-    <div class="field"><label>手動調整進度 %（留空則依工作完成比例自動計算）</label><input type="number" min="0" max="100" id="pj-progress" value="${p.progressOverride??''}"></div>
-    <div class="field"><label>備註</label><textarea id="pj-notes">${escapeHtml(p.notes||'')}</textarea></div>
-    <div class="modal-actions">
-      <div>${id?`<button class="del" onclick="deleteProject('${id}');closeOverlay();">刪除</button>`:''}</div>
-      <div class="right"><button onclick="closeOverlay()">取消</button><button class="save" onclick="saveProjectModal('${id||''}')">儲存</button></div>
-    </div>
-  `);
-}
-async function saveProjectModal(id){
-  const name = document.getElementById('pj-name').value.trim();
-  if(!name){ alert('請輸入專案名稱'); return; }
-  const progressVal = document.getElementById('pj-progress').value;
-  const data = {
-    name, category: document.getElementById('pj-cat').value, status: document.getElementById('pj-status').value,
-    description: document.getElementById('pj-desc').value, startDate: document.getElementById('pj-start').value,
-    dueDate: document.getElementById('pj-due').value, nextAction: document.getElementById('pj-next').value,
-    progressOverride: progressVal===''? '' : Number(progressVal), notes: document.getElementById('pj-notes').value
-  };
-  if(id){
-    const idx = DB.projects.findIndex(x=>x.id===id);
-    if(idx>-1) DB.projects[idx] = {...DB.projects[idx], ...data};
-  } else {
-    DB.projects.push({ id:uid('p'), ...data });
-  }
-  await persist(); closeOverlay(); renderMain();
-}
-async function deleteProject(id){
-  if(!confirm('確定刪除此專案？（底下的工作不會被刪除，但會取消關聯）')) return;
-  DB.projects = DB.projects.filter(p=>p.id!==id);
-  DB.tasks.forEach(t=>{ if(t.projectId===id) t.projectId=''; });
-  await persist(); renderMain();
-}
-
-function openMeetingModal(id){
-  const m = id ? DB.meetings.find(x=>x.id===id) : { id:'', name:'', date:todayStr(), type:'', attendees:'', discussion:'', decisions:'', followUps:'', category:'', projectId:'' };
-  openOverlay(`
-    <h2>${id?'編輯會議':'新增會議'}</h2>
-    <div class="field"><label>會議名稱</label><input type="text" id="mt-name" value="${escapeHtml(m.name)}"></div>
-    <div class="row2">
-      <div class="field"><label>日期</label><input type="date" id="mt-date" value="${m.date||''}"></div>
-      <div class="field"><label>類型</label><input type="text" id="mt-type" value="${escapeHtml(m.type||'')}" placeholder="例：例行會議 / 主管會議"></div>
-    </div>
-    <div class="row2">
-      <div class="field"><label>相關業務</label><select id="mt-cat"><option value="">未分類</option>${DB.categories.map(c=>`<option ${m.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
-      <div class="field"><label>相關專案</label><select id="mt-proj"><option value="">無</option>${DB.projects.map(p=>`<option value="${p.id}" ${m.projectId===p.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></div>
-    </div>
-    <div class="field"><label>與會人員</label><input type="text" id="mt-attendees" value="${escapeHtml(m.attendees||'')}"></div>
-    <div class="field"><label>討論事項</label><textarea id="mt-discussion">${escapeHtml(m.discussion||'')}</textarea></div>
-    <div class="field"><label>決議</label><textarea id="mt-decisions">${escapeHtml(m.decisions||'')}</textarea></div>
-    <div class="field"><label>後續工作／主管交辦（每行一項，可一鍵轉為 Task）</label><textarea id="mt-followups">${escapeHtml(m.followUps||'')}</textarea></div>
-    <div class="modal-actions">
-      <div>${id?`<button class="del" onclick="deleteMeeting('${id}');closeOverlay();">刪除</button>`:''}</div>
-      <div class="right"><button onclick="closeOverlay()">取消</button><button class="save" onclick="saveMeetingModal('${id||''}')">儲存</button></div>
-    </div>
-  `);
-}
-async function saveMeetingModal(id){
-  const name = document.getElementById('mt-name').value.trim();
-  if(!name){ alert('請輸入會議名稱'); return; }
-  const data = {
-    name, date: document.getElementById('mt-date').value, type: document.getElementById('mt-type').value,
-    category: document.getElementById('mt-cat').value, projectId: document.getElementById('mt-proj').value,
-    attendees: document.getElementById('mt-attendees').value, discussion: document.getElementById('mt-discussion').value,
-    decisions: document.getElementById('mt-decisions').value, followUps: document.getElementById('mt-followups').value
-  };
-  if(id){ const idx=DB.meetings.findIndex(x=>x.id===id); if(idx>-1) DB.meetings[idx]={...DB.meetings[idx],...data}; }
-  else DB.meetings.push({ id:uid('m'), ...data });
-  await persist(); closeOverlay(); renderMain();
-}
-
 function openResultModal(id){
-  const r = id ? DB.results.find(x=>x.id===id) : { id:'', title:'', date:todayStr(), category:'', projectId:'', purpose:'', content:'', participants:'', summary:'', photos:'', poster:'', ppt:'', signInSheet:'', survey:'', budget:'', docs:'', issues:'', improvements:'', reportText:'' };
-  openOverlay(`
+  const r = id ? DB.results.find(x=>x.id===id) : { id:'', title:'', date:todayStr(), categoryId:'', projectId:'', content:'', participants:'', summary:'', photos:'', poster:'', ppt:'', signInSheet:'', survey:'', budget:'', docs:'', issues:'', improvements:'', reportText:'', academicYear:computeAcademicYear() };
+  openModal(`
     <h2>${id?'編輯成果':'新增成果'}</h2>
-    <div class="field"><label>活動／成果名稱</label><input type="text" id="rs-title" value="${escapeHtml(r.title)}"></div>
-    <div class="row2">
-      <div class="field"><label>日期</label><input type="date" id="rs-date" value="${r.date||''}"></div>
-      <div class="field"><label>所屬業務</label><select id="rs-cat"><option value="">未分類</option>${DB.categories.map(c=>`<option ${r.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
+    <div class="d-field"><label>活動／成果名稱</label><input type="text" id="rs-title" value="${escapeHtml(r.title)}"></div>
+    <div class="d-row3">
+      <div class="d-field"><label>日期</label><input type="date" id="rs-date" value="${r.date||''}"></div>
+      <div class="d-field"><label>所屬業務</label><select id="rs-cat">${catOptionsHtml(r.categoryId)}</select></div>
+      <div class="d-field"><label>學年度</label><input type="text" id="rs-year" value="${escapeHtml(r.academicYear||computeAcademicYear())}"></div>
     </div>
-    <div class="field"><label>相關專案</label><select id="rs-proj"><option value="">無</option>${DB.projects.map(p=>`<option value="${p.id}" ${r.projectId===p.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></div>
-    <div class="field"><label>目的</label><input type="text" id="rs-purpose" value="${escapeHtml(r.purpose||'')}"></div>
-    <div class="field"><label>執行內容</label><textarea id="rs-content">${escapeHtml(r.content||'')}</textarea></div>
-    <div class="row2">
-      <div class="field"><label>參與人數</label><input type="text" id="rs-participants" value="${escapeHtml(r.participants||'')}"></div>
-      <div class="field"><label>經費</label><input type="text" id="rs-budget" value="${escapeHtml(r.budget||'')}"></div>
+    <div class="d-field"><label>相關專案</label><select id="rs-proj"><option value="">無</option>${DB.projects.map(p=>`<option value="${p.id}" ${r.projectId===p.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></div>
+    <div class="d-field"><label>執行內容</label><textarea id="rs-content">${escapeHtml(r.content||'')}</textarea></div>
+    <div class="d-row2">
+      <div class="d-field"><label>參與人數</label><input type="text" id="rs-participants" value="${escapeHtml(r.participants||'')}"></div>
+      <div class="d-field"><label>經費</label><input type="text" id="rs-budget" value="${escapeHtml(r.budget||'')}"></div>
     </div>
-    <div class="field"><label>成果摘要</label><textarea id="rs-summary">${escapeHtml(r.summary||'')}</textarea></div>
-    <div class="row2">
-      <div class="field"><label>照片連結</label><input type="text" id="rs-photos" value="${escapeHtml(r.photos||'')}"></div>
-      <div class="field"><label>海報連結</label><input type="text" id="rs-poster" value="${escapeHtml(r.poster||'')}"></div>
+    <div class="d-field"><label>成果摘要</label><textarea id="rs-summary">${escapeHtml(r.summary||'')}</textarea></div>
+    <div class="d-row2">
+      <div class="d-field"><label>照片連結</label><input type="text" id="rs-photos" value="${escapeHtml(r.photos||'')}"></div>
+      <div class="d-field"><label>海報連結</label><input type="text" id="rs-poster" value="${escapeHtml(r.poster||'')}"></div>
     </div>
-    <div class="row2">
-      <div class="field"><label>簡報連結</label><input type="text" id="rs-ppt" value="${escapeHtml(r.ppt||'')}"></div>
-      <div class="field"><label>簽到表連結</label><input type="text" id="rs-signin" value="${escapeHtml(r.signInSheet||'')}"></div>
-    </div>
-    <div class="row2">
-      <div class="field"><label>問卷連結</label><input type="text" id="rs-survey" value="${escapeHtml(r.survey||'')}"></div>
-      <div class="field"><label>相關文件連結</label><input type="text" id="rs-docs" value="${escapeHtml(r.docs||'')}"></div>
-    </div>
-    <div class="field"><label>執行問題</label><textarea id="rs-issues">${escapeHtml(r.issues||'')}</textarea></div>
-    <div class="field"><label>下次改善</label><textarea id="rs-improve">${escapeHtml(r.improvements||'')}</textarea></div>
-    <div class="field"><label>成果報告文字（可直接複製使用）</label><textarea id="rs-report">${escapeHtml(r.reportText||'')}</textarea></div>
+    <div class="d-field"><label>執行問題</label><textarea id="rs-issues">${escapeHtml(r.issues||'')}</textarea></div>
+    <div class="d-field"><label>下次改善</label><textarea id="rs-improve">${escapeHtml(r.improvements||'')}</textarea></div>
     <div class="modal-actions">
-      <div>${id?`<button class="del" onclick="deleteResult('${id}');closeOverlay();">刪除</button>`:''}</div>
-      <div class="right"><button onclick="closeOverlay()">取消</button><button class="save" onclick="saveResultModal('${id||''}')">儲存</button></div>
+      ${id?`<button class="btn danger" onclick="deleteResult('${id}')" style="margin-right:auto;">刪除</button>`:''}
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn primary" onclick="saveResultModal('${id||''}')">儲存</button>
     </div>
   `);
 }
 async function saveResultModal(id){
   const title = document.getElementById('rs-title').value.trim();
-  if(!title){ alert('請輸入名稱'); return; }
+  if(!title){ toast('請輸入名稱'); return; }
   const data = {
-    title, date: document.getElementById('rs-date').value, category: document.getElementById('rs-cat').value,
-    projectId: document.getElementById('rs-proj').value, purpose: document.getElementById('rs-purpose').value,
+    title, date: document.getElementById('rs-date').value, categoryId: document.getElementById('rs-cat').value,
+    academicYear: document.getElementById('rs-year').value, projectId: document.getElementById('rs-proj').value,
     content: document.getElementById('rs-content').value, participants: document.getElementById('rs-participants').value,
     budget: document.getElementById('rs-budget').value, summary: document.getElementById('rs-summary').value,
     photos: document.getElementById('rs-photos').value, poster: document.getElementById('rs-poster').value,
-    ppt: document.getElementById('rs-ppt').value, signInSheet: document.getElementById('rs-signin').value,
-    survey: document.getElementById('rs-survey').value, docs: document.getElementById('rs-docs').value,
-    issues: document.getElementById('rs-issues').value, improvements: document.getElementById('rs-improve').value,
-    reportText: document.getElementById('rs-report').value
+    issues: document.getElementById('rs-issues').value, improvements: document.getElementById('rs-improve').value
   };
   if(id){ const idx=DB.results.findIndex(x=>x.id===id); if(idx>-1) DB.results[idx]={...DB.results[idx],...data}; }
   else DB.results.push({ id:uid('r'), ...data });
-  await persist(); closeOverlay(); renderMain();
+  await persist(); closeModal(); renderMain(); toast('已儲存');
 }
+async function deleteResult(id){ if(!(await customConfirm('確定刪除這筆成果？')))return; DB.results=DB.results.filter(r=>r.id!==id); await persist(); closeModal(); renderMain(); toast('已刪除'); }
 
-function openEventModal(id){
-  const e = id? DB.events.find(x=>x.id===id) : { id:'', title:'', date:todayStr(), category:'', projectId:'' };
-  openOverlay(`
-    <h2>${id?'編輯 Event':'新增 Event'}</h2>
-    <div class="field"><label>名稱</label><input type="text" id="ev-title" value="${escapeHtml(e.title)}"></div>
-    <div class="row2">
-      <div class="field"><label>日期</label><input type="date" id="ev-date" value="${e.date||todayStr()}"></div>
-      <div class="field"><label>業務分類</label><select id="ev-cat"><option value="">未分類</option>${DB.categories.map(c=>`<option ${e.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
+function openMeetingModal(id){
+  const m = id ? DB.meetings.find(x=>x.id===id) : { id:'', name:'', date:todayStr(), type:'', attendees:'', discussion:'', decisions:'', followUps:'', categoryId:'', projectId:'', academicYear:computeAcademicYear() };
+  openModal(`
+    <h2>${id?'編輯會議':'新增會議'}</h2>
+    <div class="d-field"><label>會議名稱</label><input type="text" id="mt-name" value="${escapeHtml(m.name)}"></div>
+    <div class="d-row2">
+      <div class="d-field"><label>日期</label><input type="date" id="mt-date" value="${m.date||''}"></div>
+      <div class="d-field"><label>類型</label><input type="text" id="mt-type" value="${escapeHtml(m.type||'')}"></div>
     </div>
-    <div class="field"><label>相關專案</label><select id="ev-proj"><option value="">無</option>${DB.projects.map(p=>`<option value="${p.id}" ${e.projectId===p.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></div>
-    <div class="modal-actions"><div></div><div class="right"><button onclick="closeOverlay()">取消</button><button class="save" onclick="saveEventModal('${id||''}')">儲存</button></div></div>
+    <div class="d-row2">
+      <div class="d-field"><label>相關業務</label><select id="mt-cat">${catOptionsHtml(m.categoryId)}</select></div>
+      <div class="d-field"><label>相關專案</label><select id="mt-proj"><option value="">無</option>${DB.projects.map(p=>`<option value="${p.id}" ${m.projectId===p.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></div>
+    </div>
+    <div class="d-field"><label>與會人員</label><input type="text" id="mt-attendees" value="${escapeHtml(m.attendees||'')}"></div>
+    <div class="d-field"><label>討論事項</label><textarea id="mt-discussion">${escapeHtml(m.discussion||'')}</textarea></div>
+    <div class="d-field"><label>決議</label><textarea id="mt-decisions">${escapeHtml(m.decisions||'')}</textarea></div>
+    <div class="d-field"><label>後續工作／主管交辦（每行一項）</label><textarea id="mt-followups">${escapeHtml(m.followUps||'')}</textarea></div>
+    <div class="modal-actions">
+      ${id?`<button class="btn danger" onclick="deleteMeeting('${id}')" style="margin-right:auto;">刪除</button>`:''}
+      ${m.followUps?`<button class="btn" onclick="convertFollowUpsToTasks('${id}')">後續工作轉為 Task</button>`:''}
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn primary" onclick="saveMeetingModal('${id||''}')">儲存</button>
+    </div>
   `);
 }
-async function saveEventModal(id){
-  const title = document.getElementById('ev-title').value.trim();
-  if(!title){ alert('請輸入名稱'); return; }
-  const data = { title, date: document.getElementById('ev-date').value, category: document.getElementById('ev-cat').value, projectId: document.getElementById('ev-proj').value };
-  if(id){ const idx=DB.events.findIndex(x=>x.id===id); if(idx>-1) DB.events[idx]={...DB.events[idx],...data}; }
-  else DB.events.push({ id:uid('e'), ...data });
-  await persist(); closeOverlay(); renderMain();
+async function saveMeetingModal(id){
+  const name = document.getElementById('mt-name').value.trim();
+  if(!name){ toast('請輸入會議名稱'); return; }
+  const data = {
+    name, date: document.getElementById('mt-date').value, type: document.getElementById('mt-type').value,
+    categoryId: document.getElementById('mt-cat').value, projectId: document.getElementById('mt-proj').value,
+    attendees: document.getElementById('mt-attendees').value, discussion: document.getElementById('mt-discussion').value,
+    decisions: document.getElementById('mt-decisions').value, followUps: document.getElementById('mt-followups').value
+  };
+  if(id){ const idx=DB.meetings.findIndex(x=>x.id===id); if(idx>-1) DB.meetings[idx]={...DB.meetings[idx],...data}; }
+  else DB.meetings.push({ id:uid('m'), ...data });
+  await persist(); closeModal(); renderMain(); toast('已儲存');
+}
+async function deleteMeeting(id){ if(!(await customConfirm('確定刪除這筆會議？')))return; DB.meetings=DB.meetings.filter(m=>m.id!==id); await persist(); closeModal(); renderMain(); toast('已刪除'); }
+async function convertFollowUpsToTasks(id){
+  const m = DB.meetings.find(x=>x.id===id); if(!m||!m.followUps) return;
+  const lines = m.followUps.split('\n').map(s=>s.trim()).filter(Boolean);
+  lines.forEach(line=>{
+    DB.tasks.push({ id:uid('t'), title:line, categoryId:m.categoryId||'', projectId:m.projectId||'', eventId:'',
+      status:'inbox', priority:'mid', createdAt:todayStr(), scheduledDate:'', dueDate:'', completedDate:'', nextAction:'', notes:'源自會議：'+m.name, isToday:false, academicYear:computeAcademicYear() });
+  });
+  await persist(); closeModal(); toast(`已將 ${lines.length} 項加入 Inbox`); switchTab('inbox');
 }
 
-/* Category manager */
-function openCategoryManager(){
-  openOverlay(`
-    <h2>業務分類設定</h2>
-    <div class="card-list" id="catList">
-      ${DB.categories.map(c=>`
-        <div class="item-card" style="padding:8px 12px;display:flex;justify-content:space-between;align-items:center;">
-          <span>${escapeHtml(c)}</span>
-          <div class="actions-row" style="margin:0;">
-            <button onclick="renameCategory('${c.replace(/'/g,"\\'")}')">重新命名</button>
-            <button class="del" onclick="deleteCategory('${c.replace(/'/g,"\\'")}')">刪除</button>
-          </div>
-        </div>`).join('')}
-    </div>
-    <div class="field" style="margin-top:14px;"><label>新增分類</label><input type="text" id="newCatInput" placeholder="輸入新業務名稱，按 Enter 新增" onkeydown="if(event.key==='Enter')addCategory()"></div>
-    <div class="modal-actions"><div></div><div class="right"><button class="save" onclick="closeOverlay()">完成</button></div></div>
-  `);
+/* ============================================================
+   Review
+============================================================ */
+function viewReview(){
+  const t = todayStr();
+  const inboxTasks = DB.tasks.filter(x=>x.status==='inbox');
+  const overdue = activeTasks().filter(isOverdue);
+  const waiting = activeTasks().filter(x=>x.status==='waiting');
+  const followToday = waiting.filter(x=>x.waitingFollowUp && daysDiff(x.waitingFollowUp)<=0);
+  const dueSoon14 = activeTasks().filter(x=>x.status!=='done' && x.dueDate && daysDiff(x.dueDate)>=0 && daysDiff(x.dueDate)<=14);
+  const doingProjects = DB.projects.filter(p=>p.status==='doing');
+  const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
+  const doneThisWeek = DB.tasks.filter(x=>x.status==='done' && x.completedDate && x.completedDate >= weekAgo.toISOString().slice(0,10));
+  const lastReview = DB.reviews[DB.reviews.length-1];
+  const prepReady = prepSuggestions(30);
+
+  return `
+  <div class="page-title">Review</div>
+  <div class="page-sub">${lastReview? '上次回顧：'+lastReview.date : '每週花 15 分鐘，確認沒有事情被漏掉'}</div>
+
+  <div class="review-block"><h3>Inbox 還有什麼？</h3><div class="rb-sub">${inboxTasks.length} 筆待整理</div>
+    <div class="list-plain">${inboxTasks.map(x=>taskRowHtml(x)).join('')||'<div class="empty-note">收件匣是空的</div>'}</div></div>
+
+  <div class="review-block"><h3>有沒有逾期？</h3><div class="rb-sub">${overdue.length} 筆</div>
+    <div class="list-plain">${overdue.map(x=>taskRowHtml(x)).join('')||'<div class="empty-note">沒有逾期項目</div>'}</div></div>
+
+  <div class="review-block"><h3>有哪些人在等待？</h3><div class="rb-sub">${waiting.length} 筆</div>
+    <div class="list-plain">${waiting.map(x=>taskRowHtml(x)).join('')||'<div class="empty-note">目前沒有等待中的事項</div>'}</div></div>
+
+  <div class="review-block"><h3>今天需要追蹤？</h3><div class="rb-sub">${followToday.length} 筆</div>
+    <div class="list-plain">${followToday.map(x=>taskRowHtml(x)).join('')||'<div class="empty-note">沒有需要追蹤的等待事項</div>'}</div></div>
+
+  <div class="review-block"><h3>未來兩週有哪些截止？</h3><div class="rb-sub">${dueSoon14.length} 筆</div>
+    <div class="list-plain">${dueSoon14.map(x=>taskRowHtml(x)).join('')||'<div class="empty-note">未來兩週沒有截止項目</div>'}</div></div>
+
+  <div class="review-block"><h3>有活動該開始準備了嗎？</h3><div class="rb-sub">${prepReady.length} 個</div>
+    <div class="list-plain">${prepReady.map(e=>`
+      <div class="up-row"><div class="up-main" onclick="openEventModal('${e.id}')"><div class="up-title">${escapeHtml(e.title)}</div><div class="up-sub prep">還有 ${daysDiff(eventDate(e))} 天</div></div>
+      <div class="up-action"><button onclick="openPrepModal('${e.id}')">開始準備</button></div></div>`).join('')||'<div class="empty-note">目前沒有需要準備的活動</div>'}</div></div>
+
+  <div class="review-block"><h3>每個進行中專案的下一步？</h3>
+    <div class="list-plain">${doingProjects.map(p=>`
+      <div class="task-row" onclick="openProjectDrawer('${p.id}')">
+        <div class="task-main"><div class="task-title">${escapeHtml(p.name)}</div><div class="task-sub">${p.nextAction?('下一步：'+escapeHtml(p.nextAction)):'⚠ 尚未設定下一步'}</div></div>
+      </div>`).join('')||'<div class="empty-note">目前沒有進行中的專案</div>'}</div></div>
+
+  <div class="review-block"><h3>本週完成了什麼？</h3><div class="rb-sub">${doneThisWeek.length} 筆 · 重要的記得到 Library 補上成果</div>
+    <div class="list-plain">${doneThisWeek.map(x=>taskRowHtml(x)).join('')||'<div class="empty-note">本週尚無完成項目</div>'}</div></div>
+
+  <div class="review-block"><h3>下週最重要的 3–5 件事？</h3>
+    <textarea id="reviewNotes" placeholder="寫下下週重點方向…">${lastReview? escapeHtml(lastReview.notes||''):''}</textarea>
+  </div>
+  <button class="btn primary" onclick="completeReview()">完成本週回顧</button>
+  `;
+}
+async function completeReview(){
+  const notes = document.getElementById('reviewNotes').value;
+  DB.reviews.push({ date: todayStr(), notes });
+  await persist(); toast('本週回顧已儲存'); renderMain();
+}
+
+/* ============================================================
+   Settings（分類 / 學校行事曆 / 準備範本 / 備份）
+============================================================ */
+let settingsTab = 'categories';
+function viewSettings(){
+  return `
+  <div class="page-title">Settings</div>
+  <div class="page-sub">分類、自動化規則與資料備份都收在這裡</div>
+  <div class="segmented">
+    <button class="${settingsTab==='categories'?'active':''}" onclick="settingsTab='categories';renderMain()">分類</button>
+    <button class="${settingsTab==='automation'?'active':''}" onclick="settingsTab='automation';renderMain()">Automation</button>
+    <button class="${settingsTab==='school'?'active':''}" onclick="settingsTab='school';renderMain()">學校行事曆</button>
+    <button class="${settingsTab==='data'?'active':''}" onclick="settingsTab='data';renderMain()">資料</button>
+    <button class="${settingsTab==='sync'?'active':''}" onclick="settingsTab='sync';renderMain()">資料同步</button>
+  </div>
+  <div style="margin-top:20px;">
+    ${settingsTab==='categories'? settingsCategories() : ''}
+    ${settingsTab==='automation'? settingsAutomation() : ''}
+    ${settingsTab==='school'? settingsSchoolCalendar() : ''}
+    ${settingsTab==='data'? settingsData() : ''}
+    ${settingsTab==='sync'? settingsSync() : ''}
+  </div>
+  `;
+}
+function settingsSync(){
+  const url = SyncConfig.getUrl();
+  return `
+  <div class="section-label" style="margin-top:0;">目前的同步位置</div>
+  <div class="empty-note" style="word-break:break-all;margin-bottom:14px;">${url ? escapeHtml(url) : '尚未設定'}</div>
+  <div class="d-field" style="max-width:480px;">
+    <label>更換 Apps Script 網址</label>
+    <input type="text" id="syncUrlInput" placeholder="https://script.google.com/macros/s/.../exec" value="${escapeHtml(url)}">
+  </div>
+  <div id="syncTestStatus" class="empty-note"></div>
+  <div class="toolbar-line" style="margin-top:8px;">
+    <button class="btn primary" onclick="testAndSaveSyncUrl()">測試並儲存</button>
+  </div>
+
+  <div class="section-label">從舊資料匯入（例如從 Claude 版本搬過來的備份）</div>
+  <div class="empty-note" style="margin-bottom:10px;">選擇之前用「匯出完整資料（JSON）」下載的檔案，會整批覆蓋目前試算表裡的資料，請先確認目前資料沒有你想保留的東西。</div>
+  <input type="file" id="importJsonFile" accept="application/json">
+  <div class="toolbar-line" style="margin-top:8px;">
+    <button class="btn danger" onclick="importJsonFile()">匯入並覆蓋</button>
+  </div>
+  `;
+}
+async function testAndSaveSyncUrl(){
+  const url = document.getElementById('syncUrlInput').value.trim();
+  const status = document.getElementById('syncTestStatus');
+  if(!url){ status.textContent='請輸入網址'; status.style.color='var(--red)'; return; }
+  status.textContent='連線測試中…'; status.style.color='var(--ink-faint)';
+  try{
+    await pingSyncUrl(url);
+    SyncConfig.setUrl(url);
+    status.textContent='連線成功，已儲存'; status.style.color='var(--accent-deep)';
+    toast('已更新同步設定');
+  }catch(e){
+    status.textContent='連線失敗：'+e.message; status.style.color='var(--red)';
+  }
+}
+async function importJsonFile(){
+  const fileInput = document.getElementById('importJsonFile');
+  const file = fileInput.files[0];
+  if(!file){ toast('請先選擇檔案'); return; }
+  if(!(await customConfirm('確定要用這個檔案覆蓋目前所有資料嗎？這個動作無法復原。'))) return;
+  try{
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    if(!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.tasks)){
+      toast('這個檔案格式看起來不對，請確認是系統匯出的 JSON 備份');
+      return;
+    }
+    DB = parsed;
+    migrateDB();
+    await persist();
+    renderMain();
+    toast('匯入完成');
+  }catch(e){
+    toast('匯入失敗：'+e.message);
+  }
+}
+function settingsCategories(){
+  return `
+  <div class="list-plain">
+    ${DB.categories.slice().sort((a,b)=>a.order-b.order).map((c,i,arr)=>`
+      <div class="settings-row ${c.archived?'archived':''}">
+        <span>${escapeHtml(c.name)}${c.archived?'（已封存）':''}</span>
+        <div class="acts">
+          <button onclick="moveCategory('${c.id}',-1)">↑</button>
+          <button onclick="moveCategory('${c.id}',1)">↓</button>
+          <button onclick="renameCategory('${c.id}')">重新命名</button>
+          <button onclick="mergeCategory('${c.id}')">合併到…</button>
+          <button onclick="toggleArchiveCategory('${c.id}')">${c.archived?'取消封存':'封存'}</button>
+        </div>
+      </div>`).join('')}
+  </div>
+  <div class="d-field" style="max-width:320px;margin-top:12px;">
+    <input type="text" id="newCatInput" placeholder="新增分類，按 Enter" onkeydown="if(event.key==='Enter')addCategory()">
+  </div>`;
 }
 async function addCategory(){
   const el = document.getElementById('newCatInput');
   const v = el.value.trim();
-  if(!v || DB.categories.includes(v)) return;
-  DB.categories.push(v);
-  await persist();
-  openCategoryManager();
+  if(!v || DB.categories.some(c=>c.name===v)) return;
+  DB.categories.push({ id:uid('cat'), name:v, archived:false, order:DB.categories.length });
+  await persist(); renderMain();
 }
-async function renameCategory(old){
-  const nv = prompt('重新命名「'+old+'」為：', old);
-  if(!nv || nv===old) return;
-  DB.categories = DB.categories.map(c=>c===old?nv:c);
-  DB.tasks.forEach(t=>{ if(t.category===old) t.category=nv; });
-  DB.projects.forEach(p=>{ if(p.category===old) p.category=nv; });
-  DB.meetings.forEach(m=>{ if(m.category===old) m.category=nv; });
-  DB.results.forEach(r=>{ if(r.category===old) r.category=nv; });
-  DB.events.forEach(e=>{ if(e.category===old) e.category=nv; });
-  await persist();
-  openCategoryManager();
-  renderMain();
+async function renameCategory(id){
+  const c = DB.categories.find(x=>x.id===id); if(!c) return;
+  const nv = await customPrompt('重新命名「'+c.name+'」為：', c.name);
+  if(!nv || nv===c.name) return;
+  c.name = nv; await persist(); renderMain(); toast('已更新');
 }
-async function deleteCategory(c){
-  const inUse = DB.tasks.some(t=>t.category===c) || DB.projects.some(p=>p.category===c);
-  if(inUse && !confirm('這個分類目前有工作或專案在使用，仍要刪除嗎？（不會刪除工作，只會清空其分類）')) return;
-  DB.categories = DB.categories.filter(x=>x!==c);
-  DB.tasks.forEach(t=>{ if(t.category===c) t.category=''; });
-  DB.projects.forEach(p=>{ if(p.category===c) p.category=''; });
-  await persist();
-  openCategoryManager();
-  renderMain();
+async function toggleArchiveCategory(id){
+  const c = DB.categories.find(x=>x.id===id); if(!c) return;
+  c.archived = !c.archived; await persist(); renderMain();
+}
+async function moveCategory(id, dir){
+  const list = DB.categories.slice().sort((a,b)=>a.order-b.order);
+  const idx = list.findIndex(c=>c.id===id);
+  const swapIdx = idx+dir;
+  if(swapIdx<0 || swapIdx>=list.length) return;
+  const a=list[idx], b=list[swapIdx];
+  const tmp=a.order; a.order=b.order; b.order=tmp;
+  await persist(); renderMain();
+}
+function mergeCategory(id){
+  const c = DB.categories.find(x=>x.id===id); if(!c) return;
+  const others = DB.categories.filter(x=>x.id!==id);
+  if(!others.length){ toast('沒有其他分類可以合併'); return; }
+  openModal(`
+    <h2>將「${escapeHtml(c.name)}」合併到…</h2>
+    <div class="empty-note" style="margin-bottom:10px;">選一個目標分類，「${escapeHtml(c.name)}」底下所有資料會轉移過去，原分類會被刪除。</div>
+    <div class="list-plain">
+      ${others.map(o=>`<div class="settings-row" style="cursor:pointer;" onclick="doMergeCategory('${id}','${o.id}')"><span>${escapeHtml(o.name)}${o.archived?'（已封存）':''}</span><span>→</span></div>`).join('')}
+    </div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">取消</button></div>
+  `);
+}
+async function doMergeCategory(id, targetId){
+  const target = DB.categories.find(x=>x.id===targetId); if(!target) return;
+  ['tasks','projects','meetings','results','events'].forEach(coll=>{
+    DB[coll].forEach(item=>{ if(item.categoryId===id) item.categoryId=targetId; });
+  });
+  DB.categories = DB.categories.filter(x=>x.id!==id);
+  await persist(); closeModal(); renderMain(); toast(`已合併到「${target.name}」`);
 }
 
-/* ============================================================
-   Export / Backup
-============================================================ */
-function openExportMenu(){
-  openOverlay(`
-    <h2>匯出／備份</h2>
-    <div class="empty-note" style="margin-bottom:12px;">建議每隔一段時間備份一次，未來即使更換系統也不會遺失紀錄。</div>
-    <div class="card-list">
-      <button class="save" style="width:100%;padding:10px;" onclick="exportJSON()">📦 匯出完整資料（JSON）</button>
-      <button style="width:100%;padding:10px;border:1px solid var(--ink-soft);background:#fff;border-radius:4px;" onclick="exportCSV('tasks')">📋 匯出 Tasks（CSV）</button>
-      <button style="width:100%;padding:10px;border:1px solid var(--ink-soft);background:#fff;border-radius:4px;" onclick="exportCSV('projects')">📋 匯出 Projects（CSV）</button>
-      <button style="width:100%;padding:10px;border:1px solid var(--ink-soft);background:#fff;border-radius:4px;" onclick="exportCSV('meetings')">📋 匯出 Meetings（CSV）</button>
-      <button style="width:100%;padding:10px;border:1px solid var(--ink-soft);background:#fff;border-radius:4px;" onclick="exportCSV('results')">📋 匯出 Results（CSV）</button>
-      <button style="width:100%;padding:10px;border:1px solid var(--rust);color:var(--rust);background:#fff;border-radius:4px;" onclick="if(confirm('確定要刪除所有 DEMO 測試資料嗎？'))clearDemoData()">🗑 刪除所有 Demo 測試資料</button>
+function settingsAutomation(){
+  return `
+  <div class="section-label" style="margin-top:0;">準備範本（Preparation Templates）</div>
+  <div class="empty-note" style="margin-bottom:10px;">活動綁定範本後，系統會依範本的天數自動在 Today 提醒你何時該開始準備。</div>
+  <div class="list-plain">
+    ${DB.prepTemplates.map(tpl=>`
+      <div class="settings-row">
+        <span>${escapeHtml(tpl.name)}<span class="task-sub" style="margin-left:8px;">${tpl.steps.length} 個步驟</span></span>
+        <div class="acts"><button onclick="openTemplateEditor('${tpl.id}')">編輯</button><button onclick="deleteTemplate('${tpl.id}')">刪除</button></div>
+      </div>`).join('') || '<div class="empty-note">尚未建立任何範本</div>'}
+  </div>
+  <button class="btn" style="margin-top:12px;" onclick="openTemplateEditor(null)">＋ 新增範本</button>
+  `;
+}
+function openTemplateEditor(id){
+  const tpl = id ? DB.prepTemplates.find(x=>x.id===id) : { id:'', name:'', steps:[] };
+  const stepsHtml = (steps)=> steps.map((s,i)=>`
+    <div class="tpl-step-edit" data-i="${i}">
+      <input type="number" value="${s.offset}" class="tpl-offset" title="相對活動日的天數，負數為活動前">
+      <input type="text" value="${escapeHtml(s.title)}" class="tpl-title">
+      <button onclick="this.parentElement.remove()">×</button>
+    </div>`).join('');
+  openModal(`
+    <h2>${id?'編輯範本':'新增範本'}</h2>
+    <div class="d-field"><label>範本名稱</label><input type="text" id="tpl-name" value="${escapeHtml(tpl.name)}"></div>
+    <div class="d-field"><label>步驟（負數＝活動前 N 天，正數＝活動後 N 天）</label>
+      <div id="tplStepsArea">${stepsHtml(tpl.steps)}</div>
+      <button class="link-btn" style="margin-top:8px;" onclick="addTemplateStepRow()">＋ 新增步驟</button>
     </div>
-    <div class="modal-actions"><div></div><div class="right"><button onclick="closeOverlay()">關閉</button></div></div>
+    <div class="modal-actions">
+      ${id?`<button class="btn danger" onclick="deleteTemplate('${id}')" style="margin-right:auto;">刪除範本</button>`:''}
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn primary" onclick="saveTemplateEditor('${id||''}')">儲存</button>
+    </div>
   `);
+}
+function addTemplateStepRow(){
+  const area = document.getElementById('tplStepsArea');
+  const div = document.createElement('div');
+  div.className='tpl-step-edit';
+  div.innerHTML = `<input type="number" value="-7" class="tpl-offset"><input type="text" value="" class="tpl-title" placeholder="步驟名稱"><button onclick="this.parentElement.remove()">×</button>`;
+  area.appendChild(div);
+}
+async function saveTemplateEditor(id){
+  const name = document.getElementById('tpl-name').value.trim();
+  if(!name){ toast('請輸入範本名稱'); return; }
+  const rows = document.querySelectorAll('#tplStepsArea .tpl-step-edit');
+  const steps = Array.from(rows).map(r=>({ id:uid('st'), offset:Number(r.querySelector('.tpl-offset').value)||0, title:r.querySelector('.tpl-title').value.trim() })).filter(s=>s.title);
+  if(id){ const idx=DB.prepTemplates.findIndex(x=>x.id===id); if(idx>-1) DB.prepTemplates[idx]={...DB.prepTemplates[idx], name, steps}; }
+  else DB.prepTemplates.push({ id:uid('tpl'), name, steps });
+  await persist(); closeModal(); renderMain(); toast('範本已儲存');
+}
+async function deleteTemplate(id){
+  if(!(await customConfirm('確定刪除這個範本？已使用此範本的活動不會被刪除，只是不再連結範本。'))) return;
+  DB.prepTemplates = DB.prepTemplates.filter(t=>t.id!==id);
+  DB.events.forEach(e=>{ if(e.templateId===id) e.templateId=''; });
+  await persist(); closeModal(); renderMain(); toast('已刪除');
+}
+
+function settingsSchoolCalendar(){
+  const list = DB.schoolEvents.slice().sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
+  return `
+  <div class="section-label" style="margin-top:0;">學校行事曆</div>
+  <div class="empty-note" style="margin-bottom:10px;">唯讀背景資訊，用來檢查你的活動是否撞期。未來可串接 Google Calendar／Sheet，目前先手動輸入。</div>
+  <div class="list-plain">
+    ${list.map(e=>`
+      <div class="settings-row">
+        <span>${escapeHtml(e.title)}<span class="impact-badge ${e.impactLevel}">${IMPACT_LABELS[e.impactLevel]||''}</span><span class="task-sub" style="margin-left:8px;">${fmtDate(e.startDate)}${e.endDate&&e.endDate!==e.startDate?'–'+fmtDate(e.endDate):''}</span></span>
+        <div class="acts"><button onclick="deleteSchoolEvent('${e.id}')">刪除</button></div>
+      </div>`).join('') || '<div class="empty-note">尚未建立學校行事曆</div>'}
+  </div>
+  <div class="d-section-label">新增單筆</div>
+  <div class="d-row2">
+    <div class="d-field"><label>名稱</label><input type="text" id="se-title"></div>
+    <div class="d-field"><label>影響程度</label><select id="se-impact"><option value="high">高</option><option value="medium" selected>中</option><option value="low">低</option></select></div>
+  </div>
+  <div class="d-row2">
+    <div class="d-field"><label>開始日期</label><input type="date" id="se-start"></div>
+    <div class="d-field"><label>結束日期（可留空）</label><input type="date" id="se-end"></div>
+  </div>
+  <div class="d-field"><label>類型</label><input type="text" id="se-type" placeholder="例：考試／全校活動"></div>
+  <button class="btn primary" onclick="addSchoolEvent()">新增</button>
+
+  <div class="d-section-label">批次貼上（每行：名稱,開始日期,結束日期,類型,影響程度）</div>
+  <div class="d-field"><textarea id="seBulkInput" placeholder="第二次段考,2026-11-18,2026-11-19,考試,high"></textarea></div>
+  <button class="btn" onclick="bulkAddSchoolEvents()">批次匯入</button>
+  `;
+}
+async function addSchoolEvent(){
+  const title = document.getElementById('se-title').value.trim();
+  const start = document.getElementById('se-start').value;
+  if(!title || !start){ toast('請輸入名稱與開始日期'); return; }
+  DB.schoolEvents.push({ id:uid('se'), title, startDate:start, endDate:document.getElementById('se-end').value||'', type:document.getElementById('se-type').value, impactLevel:document.getElementById('se-impact').value, source:'手動輸入' });
+  await persist(); renderMain(); toast('已新增');
+}
+async function bulkAddSchoolEvents(){
+  const raw = document.getElementById('seBulkInput').value.trim();
+  if(!raw) return;
+  const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
+  let count = 0;
+  lines.forEach(line=>{
+    const parts = line.split(',').map(s=>s.trim());
+    if(parts.length<2) return;
+    const [title, startDate, endDate, type, impactLevel] = parts;
+    if(!title||!startDate) return;
+    DB.schoolEvents.push({ id:uid('se'), title, startDate, endDate:endDate||'', type:type||'', impactLevel:impactLevel||'medium', source:'批次匯入' });
+    count++;
+  });
+  await persist(); renderMain(); toast(`已匯入 ${count} 筆`);
+}
+async function deleteSchoolEvent(id){ DB.schoolEvents = DB.schoolEvents.filter(e=>e.id!==id); await persist(); renderMain(); }
+
+function settingsData(){
+  return `
+  <div class="section-label" style="margin-top:0;">資料備份</div>
+  <div class="toolbar-line" style="flex-wrap:wrap;">
+    <button class="btn" onclick="exportJSON()">匯出完整資料（JSON）</button>
+    <button class="btn" onclick="exportCSV('tasks')">匯出 Tasks（CSV）</button>
+    <button class="btn" onclick="exportCSV('projects')">匯出 Projects（CSV）</button>
+    <button class="btn" onclick="exportCSV('meetings')">匯出 Meetings（CSV）</button>
+    <button class="btn" onclick="exportCSV('results')">匯出 Results（CSV）</button>
+  </div>
+  <div class="section-label">測試資料</div>
+  <button class="btn danger" onclick="confirmClearDemoData()">刪除所有 Demo 測試資料</button>
+  `;
 }
 function downloadBlob(content, filename, type){
   const blob = new Blob([content], {type});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename;
+  const a = document.createElement('a'); a.href=url; a.download=filename;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-function exportJSON(){
-  downloadBlob(JSON.stringify(DB, null, 2), `library-system-backup-${todayStr()}.json`, 'application/json');
-  toast('已匯出 JSON 備份');
-}
+function exportJSON(){ downloadBlob(JSON.stringify(DB,null,2), `library-system-backup-${todayStr()}.json`, 'application/json'); toast('已匯出 JSON'); }
 function exportCSV(kind){
   const rows = DB[kind]||[];
   if(!rows.length){ toast('沒有資料可以匯出'); return; }
@@ -1208,26 +1531,267 @@ function exportCSV(kind){
   downloadBlob('\uFEFF'+csv, `${kind}-${todayStr()}.csv`, 'text/csv;charset=utf-8;');
   toast('已匯出 CSV');
 }
+async function confirmClearDemoData(){
+  if(!(await customConfirm('確定要刪除所有 DEMO 測試資料嗎？'))) return;
+  await clearDemoData();
+}
 async function clearDemoData(){
   DB.tasks = DB.tasks.filter(t=>!t.isDemo);
   DB.projects = DB.projects.filter(p=>!p.isDemo);
   DB.meetings = DB.meetings.filter(m=>!m.isDemo);
   DB.results = DB.results.filter(r=>!r.isDemo);
   DB.events = DB.events.filter(e=>!e.isDemo);
-  await persist();
-  closeOverlay();
+  DB.schoolEvents = DB.schoolEvents.filter(e=>!e.isDemo);
+  await persist(); renderMain(); toast('Demo 測試資料已清除');
+}
+
+/* ============================================================
+   Search
+============================================================ */
+function doSearch(){ doSearchWith(document.getElementById('globalSearch').value); }
+function doSearchWith(qRaw){
+  const q = (qRaw||'').trim().toLowerCase();
+  if(!q) return;
+  const inStr = (s)=> (s||'').toLowerCase().includes(q);
+  const tasks = DB.tasks.filter(t=> inStr(t.title)||inStr(t.notes)||inStr(t.nextAction)||inStr(catName(t.categoryId)));
+  const projects = DB.projects.filter(p=> inStr(p.name)||inStr(p.description)||inStr(catName(p.categoryId)));
+  const meetings = DB.meetings.filter(m=> inStr(m.name)||inStr(m.discussion)||inStr(m.decisions)||inStr(m.followUps));
+  const results = DB.results.filter(r=> inStr(r.title)||inStr(r.summary)||inStr(r.content));
+  const events = DB.events.filter(e=> inStr(e.title));
+  window._searchHtml = `
+    <div class="page-title">搜尋</div>
+    <div class="page-sub">「${escapeHtml(q)}」的結果</div>
+    <div class="section-label">工作（${tasks.length}）</div>
+    <div class="list-plain">${tasks.map(t=>taskRowHtml(t)).join('')||'<div class="empty-note">無</div>'}</div>
+    <div class="section-label">活動（${events.length}）</div>
+    <div class="list-plain">${events.map(e=>`<div class="task-row" onclick="openEventModal('${e.id}')"><div class="task-main"><div class="task-title">${escapeHtml(e.title)}</div></div></div>`).join('')||'<div class="empty-note">無</div>'}</div>
+    <div class="section-label">專案（${projects.length}）</div>
+    <div class="list-plain">${projects.map(p=>`<div class="task-row" onclick="openProjectDrawer('${p.id}')"><div class="task-main"><div class="task-title">${escapeHtml(p.name)}</div></div></div>`).join('')||'<div class="empty-note">無</div>'}</div>
+    <div class="section-label">會議（${meetings.length}）</div>
+    <div class="list-plain">${meetings.map(m=>`<div class="task-row" onclick="openMeetingModal('${m.id}')"><div class="task-main"><div class="task-title">${escapeHtml(m.name)}</div></div></div>`).join('')||'<div class="empty-note">無</div>'}</div>
+    <div class="section-label">成果（${results.length}）</div>
+    <div class="list-plain">${results.map(r=>`<div class="task-row" onclick="openResultModal('${r.id}')"><div class="task-main"><div class="task-title">${escapeHtml(r.title)}</div></div></div>`).join('')||'<div class="empty-note">無</div>'}</div>
+  `;
+  currentTab='search';
+  document.getElementById('mainArea').innerHTML = window._searchHtml;
+  closeSidebarOnMobile();
+}
+
+/* ============================================================
+   Task drawer
+============================================================ */
+function openTaskDrawer(id, opts={}){
+  const t = DB.tasks.find(x=>x.id===id); if(!t) return;
+  openDrawer(`
+    <button class="drawer-close" onclick="closeDrawer()">×</button>
+    <h2>${opts.inboxSort? '整理工作' : '工作內容'}</h2>
+    <div class="d-field"><label>工作名稱</label><input type="text" id="tk-title" value="${escapeHtml(t.title)}"></div>
+
+    <div class="d-section-label">分類與去向</div>
+    <div class="d-row2">
+      <div class="d-field"><label>業務分類</label><select id="tk-cat">${catOptionsHtml(t.categoryId)}</select></div>
+      <div class="d-field"><label>所屬專案</label><select id="tk-proj"><option value="">無</option>${DB.projects.map(p=>`<option value="${p.id}" ${t.projectId===p.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></div>
+    </div>
+    <div class="d-field"><label>相關活動</label><select id="tk-event"><option value="">無</option>${DB.events.map(e=>`<option value="${e.id}" ${t.eventId===e.id?'selected':''}>${escapeHtml(e.title)}</option>`).join('')}</select></div>
+    <div class="d-row2">
+      <div class="d-field"><label>狀態</label><select id="tk-status" onchange="document.getElementById('tk-waiting-block').style.display=this.value==='waiting'?'block':'none'">
+        ${Object.entries(STATUS_LABELS).map(([k,v])=>`<option value="${k}" ${t.status===k?'selected':''}>${v}</option>`).join('')}
+      </select></div>
+      <div class="d-field"><label>優先程度</label><select id="tk-prio">${Object.entries(PRIO_LABELS).map(([k,v])=>`<option value="${k}" ${t.priority===k?'selected':''}>${v}</option>`).join('')}</select></div>
+    </div>
+
+    <div class="d-section-label">時間</div>
+    <div class="d-row2">
+      <div class="d-field"><label>執行日期</label><input type="date" id="tk-sched" value="${t.scheduledDate||''}"></div>
+      <div class="d-field"><label>截止日期</label><input type="date" id="tk-due" value="${t.dueDate||''}"></div>
+    </div>
+    <div class="d-field"><label>下一步</label><input type="text" id="tk-next" value="${escapeHtml(t.nextAction||'')}"></div>
+
+    <div id="tk-waiting-block" style="display:${t.status==='waiting'?'block':'none'}">
+      <div class="d-section-label">等待他人</div>
+      <div class="d-row2">
+        <div class="d-field"><label>等待誰</label><input type="text" id="tk-wfor" value="${escapeHtml(t.waitingFor||'')}"></div>
+        <div class="d-field"><label>預計追蹤日期</label><input type="date" id="tk-wfollow" value="${t.waitingFollowUp||''}"></div>
+      </div>
+      <div class="d-field"><label>等待什麼</label><input type="text" id="tk-wwhat" value="${escapeHtml(t.waitingWhat||'')}"></div>
+    </div>
+
+    <div class="d-section-label">備註</div>
+    <div class="d-field"><textarea id="tk-notes" placeholder="備註／成果">${escapeHtml(t.notes||'')}</textarea></div>
+
+    <div class="drawer-actions">
+      <button class="btn danger" onclick="deleteTask('${t.id}')">刪除</button>
+      <button class="btn primary" onclick="saveTaskDrawer('${t.id}')">儲存</button>
+    </div>
+  `);
+}
+async function saveTaskDrawer(id){
+  const title = document.getElementById('tk-title').value.trim();
+  if(!title){ toast('請輸入工作名稱'); return; }
+  const status = document.getElementById('tk-status').value;
+  const idx = DB.tasks.findIndex(x=>x.id===id);
+  if(idx<0) return;
+  const t = DB.tasks[idx];
+  const data = {
+    title, categoryId: document.getElementById('tk-cat').value, projectId: document.getElementById('tk-proj').value,
+    eventId: document.getElementById('tk-event').value,
+    status, priority: document.getElementById('tk-prio').value,
+    scheduledDate: document.getElementById('tk-sched').value, dueDate: document.getElementById('tk-due').value,
+    nextAction: document.getElementById('tk-next').value, notes: document.getElementById('tk-notes').value,
+    waitingFor: document.getElementById('tk-wfor').value, waitingWhat: document.getElementById('tk-wwhat').value,
+    waitingFollowUp: document.getElementById('tk-wfollow').value,
+    completedDate: status==='done' ? (t.completedDate||todayStr()) : t.completedDate
+  };
+  DB.tasks[idx] = {...t, ...data};
+  await persist(); closeDrawer(); renderMain(); toast('已儲存');
+}
+
+/* ============================================================
+   Drawer / Modal
+============================================================ */
+function openDrawer(html){ document.getElementById('drawer').innerHTML = html; document.getElementById('drawer').classList.add('show'); document.getElementById('drawerOverlay').classList.add('show'); }
+function closeDrawer(){ document.getElementById('drawer').classList.remove('show'); document.getElementById('drawerOverlay').classList.remove('show'); }
+function openModal(html){ document.getElementById('modalBox').innerHTML = html; document.getElementById('modalOverlay').classList.add('show'); }
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('show'); }
+
+/* 自訂確認／輸入對話框：取代原生 confirm()/prompt()，因為某些預覽環境會封鎖原生對話框 */
+function customConfirm(message){
+  return new Promise(resolve=>{
+    openModal(`
+      <h2>請確認</h2>
+      <div style="font-size:13.5px;margin-bottom:18px;line-height:1.6;">${escapeHtml(message)}</div>
+      <div class="modal-actions">
+        <button class="btn" id="cc-cancel">取消</button>
+        <button class="btn danger" id="cc-ok">確定</button>
+      </div>
+    `);
+    document.getElementById('cc-cancel').onclick = ()=>{ closeModal(); resolve(false); };
+    document.getElementById('cc-ok').onclick = ()=>{ closeModal(); resolve(true); };
+  });
+}
+function customPrompt(message, defaultValue){
+  return new Promise(resolve=>{
+    openModal(`
+      <h2>請輸入</h2>
+      <div style="font-size:13.5px;margin-bottom:10px;line-height:1.6;">${escapeHtml(message)}</div>
+      <input type="text" class="qa-input" id="cp-input" value="${escapeHtml(defaultValue||'')}">
+      <div class="modal-actions">
+        <button class="btn" id="cp-cancel">取消</button>
+        <button class="btn primary" id="cp-ok">確定</button>
+      </div>
+    `);
+    const input = document.getElementById('cp-input');
+    setTimeout(()=>{ if(input){ input.focus(); input.select(); } }, 30);
+    const finish = (val)=>{ closeModal(); resolve(val); };
+    document.getElementById('cp-cancel').onclick = ()=> finish(null);
+    document.getElementById('cp-ok').onclick = ()=> finish(input.value.trim());
+    input.addEventListener('keydown', e=>{ if(e.key==='Enter') finish(input.value.trim()); });
+  });
+}
+
+/* ============================================================
+   Quick add
+============================================================ */
+function openQuickAdd(opts={}){
+  openModal(`
+    <h2>要記下什麼？</h2>
+    <input type="text" class="qa-input" id="qaTitle" placeholder="輸入工作名稱，按 Enter" autofocus onkeydown="if(event.key==='Enter')quickAddSubmit()">
+    <div class="more-toggle" onclick="document.getElementById('qaMore').classList.toggle('hidden')">更多設定 ▾</div>
+    <div id="qaMore" class="hidden">
+      <div class="d-row2">
+        <div class="d-field"><label>業務分類</label><select id="qaCat">${catOptionsHtml('')}</select></div>
+        <div class="d-field"><label>優先程度</label><select id="qaPrio"><option value="high">高</option><option value="mid" selected>中</option><option value="low">低</option></select></div>
+      </div>
+      <div class="d-row2">
+        <div class="d-field"><label>排定日期</label><input type="date" id="qaSched"></div>
+        <div class="d-field"><label>截止日期</label><input type="date" id="qaDue"></div>
+      </div>
+    </div>
+    <input type="hidden" id="qaProject" value="${opts.presetProjectId||''}">
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn primary" onclick="quickAddSubmit()">儲存</button>
+    </div>
+  `);
+  setTimeout(()=>{ const el=document.getElementById('qaTitle'); if(el) el.focus(); }, 40);
+}
+async function quickAddSubmit(){
+  const title = document.getElementById('qaTitle').value.trim();
+  if(!title) return;
+  const moreOpen = !document.getElementById('qaMore').classList.contains('hidden');
+  const sched = moreOpen ? document.getElementById('qaSched').value : '';
+  const due = moreOpen ? document.getElementById('qaDue').value : '';
+  const task = { id:uid('t'), title, categoryId: moreOpen?document.getElementById('qaCat').value:'',
+    projectId: document.getElementById('qaProject').value||'', eventId:'',
+    status: (sched||due) ? 'scheduled' : 'inbox', priority: moreOpen?document.getElementById('qaPrio').value:'mid',
+    createdAt:todayStr(), scheduledDate:sched, dueDate:due, completedDate:'', nextAction:'', notes:'', isToday:false, academicYear:computeAcademicYear() };
+  DB.tasks.push(task);
+  await persist(); closeModal(); renderMain(); toast('已記下');
+}
+
+/* ============================================================
+   首次設定畫面／連線失敗畫面（獨立部署版專用）
+============================================================ */
+function renderSetupScreen(){
+  document.getElementById('mainArea').innerHTML = `
+    <div class="page-title">連接你的 Google 試算表</div>
+    <div class="page-sub">這個系統的資料會存在你自己的 Google 試算表裡。貼上部署後拿到的 Apps Script 網址即可開始使用。</div>
+    <div class="d-field" style="max-width:480px;">
+      <label>Apps Script 網頁應用程式網址（結尾是 /exec）</label>
+      <input type="text" id="setupUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+    </div>
+    <div id="setupStatus" class="empty-note" style="min-height:20px;"></div>
+    <div style="margin-top:14px;"><button class="btn primary" onclick="submitSetupUrl()">測試連線並儲存</button></div>
+    <div class="empty-note" style="margin-top:28px;max-width:480px;">還沒部署嗎？打開附上的「AppsScript-Code.gs」，依照「部署說明」文件的步驟操作，就能拿到這組網址。</div>
+  `;
+  document.getElementById('drawer').classList.remove('show');
+  document.getElementById('drawerOverlay').classList.remove('show');
+}
+async function submitSetupUrl(){
+  const input = document.getElementById('setupUrlInput');
+  const url = input.value.trim();
+  const status = document.getElementById('setupStatus');
+  if(!url){ status.textContent = '請輸入網址'; status.style.color = 'var(--red)'; return; }
+  status.textContent = '連線測試中…'; status.style.color = 'var(--ink-faint)';
+  try{
+    await pingSyncUrl(url);
+    SyncConfig.setUrl(url);
+    status.textContent = '連線成功，載入資料中…'; status.style.color = 'var(--accent-deep)';
+    await bootApp();
+  }catch(e){
+    status.textContent = '連線失敗：'+e.message+'（請確認部署時「具有應用程式存取權的使用者」設為「任何人」）';
+    status.style.color = 'var(--red)';
+  }
+}
+function renderConnectionErrorScreen(){
+  document.getElementById('mainArea').innerHTML = `
+    <div class="page-title">連線失敗</div>
+    <div class="page-sub">讀取 Google 試算表資料時發生錯誤，為了保護你既有的資料，系統不會建立新的空白資料。</div>
+    <div class="empty-note" style="margin-bottom:16px;">請檢查網路連線，或確認 Apps Script 部署是否還有效，然後重試。</div>
+    <button class="btn primary" onclick="bootApp()">重新嘗試連線</button>
+    <button class="btn" style="margin-left:8px;" onclick="renderSetupScreen()">重新設定同步網址</button>
+  `;
+}
+async function bootApp(){
+  document.getElementById('mainArea').innerHTML = '<div class="loading-msg">載入中…</div>';
+  await loadDB();
+  if(DB === null){ renderConnectionErrorScreen(); return; }
+  renderNav();
   renderMain();
-  toast('Demo 測試資料已清除');
 }
 
 /* ============================================================
    Init
 ============================================================ */
-document.getElementById('overlay').addEventListener('click', (e)=>{ if(e.target.id==='overlay') closeOverlay(); });
-(async function init(){
+document.getElementById('drawerOverlay').addEventListener('click', closeDrawer);
+document.getElementById('modalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='modalOverlay') closeModal(); });
+(function init(){
   renderNav();
-  await loadDB();
-  renderMain();
+  if(!SyncConfig.getUrl()){
+    renderSetupScreen();
+  } else {
+    bootApp();
+  }
 })();
 </script>
 </body>
