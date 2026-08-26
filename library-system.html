@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>圖書館工作空間</title>
+<style>
+:root{
+  --paper:#f6f2ea; --paper-line:#e2d9c8; --ink:#2b2822; --ink-soft:#786f60; --ink-faint:#a89e8c;
+  --card:#fffdf8; --teal:#3c6e64; --teal-deep:#2a4d46; --teal-pale:#e4ede9;
+  --amber:#b8843a; --amber-pale:#f4e9d6; --rust:#a4452f; --rust-pale:#f4e0da;
+  --plum:#6d5a7e; --plum-pale:#ece5f0;
+  --radius:4px;
+}
+*{ box-sizing:border-box; }
+html,body{ margin:0; height:100%; }
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  font-size:14px; line-height:1.5;
+}
+.mono{ font-family:"Courier New",monospace; }
+h1,h2,h3{ font-family:"Noto Serif TC","PMingLiU",serif; margin:0; }
+button{ font-family:inherit; cursor:pointer; }
+input,select,textarea{ font-family:inherit; }
+
+/* ---------- shell ---------- */
+#app{ display:flex; flex-direction:column; min-height:100vh; }
+.topbar{
+  background:var(--ink); color:#f6f2ea; padding:10px 18px;
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+}
+.brand{ font-family:"Noto Serif TC",serif; font-size:17px; letter-spacing:1px; margin-right:6px; white-space:nowrap; }
+.brand span{ color:var(--amber); }
+.nav{ display:flex; gap:2px; flex-wrap:wrap; flex:1; }
+.nav button{
+  background:transparent; border:none; color:#d8d2c4; padding:7px 11px;
+  border-radius:14px; font-size:12.5px; letter-spacing:.5px; white-space:nowrap;
+}
+.nav button:hover{ background:rgba(255,255,255,0.08); color:#fff; }
+.nav button.active{ background:var(--teal); color:#fff; }
+.top-actions{ display:flex; gap:6px; align-items:center; }
+.searchbox{
+  background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2);
+  border-radius:14px; padding:5px 12px; color:#fff; font-size:12.5px; width:150px;
+}
+.searchbox::placeholder{ color:#c9c2b4; }
+.icon-btn{
+  background:transparent; border:1px solid rgba(255,255,255,0.25); color:#e8e3d8;
+  border-radius:14px; padding:5px 11px; font-size:11.5px;
+}
+.icon-btn:hover{ background:rgba(255,255,255,0.1); }
+
+.main{ flex:1; max-width:1220px; margin:0 auto; width:100%; padding:22px 18px 90px; }
+.hidden{ display:none !important; }
+
+/* quick add fab */
+.fab{
+  position:fixed; right:26px; bottom:26px; width:56px; height:56px; border-radius:50%;
+  background:var(--teal); color:#fff; border:none; font-size:26px; box-shadow:2px 3px 0 var(--teal-deep);
+  z-index:40;
+}
+.fab:active{ transform:translate(1px,2px); }
+
+/* ---------- generic components ---------- */
+.section-title{ font-size:15px; font-weight:700; margin:26px 0 10px; display:flex; align-items:center; gap:8px; }
+.section-title:first-child{ margin-top:0; }
+.pill{ display:inline-block; padding:2px 9px; border-radius:12px; font-size:11px; font-family:"Courier New",monospace; }
+.pill.cat{ background:var(--teal-pale); color:var(--teal-deep); }
+
+.stat-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:8px; }
+.stat-card{ background:var(--card); border:1px solid var(--paper-line); border-radius:var(--radius); padding:10px 12px; }
+.stat-card .n{ font-size:22px; font-weight:700; color:var(--teal-deep); font-family:"Courier New",monospace; }
+.stat-card .l{ font-size:11px; color:var(--ink-soft); }
+.stat-card.warn .n{ color:var(--rust); }
+
+.card-list{ display:flex; flex-direction:column; gap:8px; }
+.item-card{
+  background:var(--card); border:1px solid var(--paper-line); border-left:4px solid var(--ink-faint);
+  border-radius:var(--radius); padding:10px 13px;
+}
+.item-card.st-doing{ border-left-color:var(--amber); }
+.item-card.st-waiting{ border-left-color:var(--plum); }
+.item-card.st-checking{ border-left-color:#5a7fa6; }
+.item-card.st-done{ border-left-color:var(--teal); opacity:.75; }
+.item-card.st-inbox{ border-left-color:var(--ink-faint); }
+.item-card.overdue{ border-left-color:var(--rust); }
+.item-top{ display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+.item-title{ font-weight:700; font-size:14px; }
+.item-title.done{ text-decoration:line-through; color:var(--ink-soft); }
+.item-sub{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; }
+.item-notes{ font-size:12.5px; color:var(--ink-soft); margin-top:5px; white-space:pre-wrap; }
+.badges{ display:flex; gap:5px; flex-wrap:wrap; margin-top:6px; }
+.badge{ font-size:10.5px; font-family:"Courier New",monospace; padding:1px 7px; border-radius:10px; border:1px solid var(--ink-faint); color:var(--ink-soft); }
+.badge.prio-high{ border-color:var(--rust); color:var(--rust); }
+.badge.prio-mid{ border-color:var(--amber); color:var(--amber); }
+.badge.due-over{ background:var(--rust); color:#fff; border-color:var(--rust); }
+.badge.due-soon{ background:var(--amber-pale); border-color:var(--amber); color:#8a5a1f; }
+.badge.waiting{ background:var(--plum-pale); border-color:var(--plum); color:var(--plum); }
+.actions-row{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+.actions-row button{
+  font-size:10.5px; font-family:"Courier New",monospace; border:1px solid var(--ink-faint);
+  background:#fff; color:var(--ink); padding:3px 8px; border-radius:10px;
+}
+.actions-row button:hover{ background:var(--ink); color:#fff; }
+.actions-row button.del{ border-color:var(--rust); color:var(--rust); }
+.actions-row button.del:hover{ background:var(--rust); color:#fff; }
+.actions-row button.star.on{ background:var(--amber); color:#fff; border-color:var(--amber); }
+.empty-note{ font-size:12px; color:var(--ink-faint); font-family:"Courier New",monospace; padding:6px 0; }
+
+.toolbar{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+.chip{ font-family:"Courier New",monospace; font-size:11.5px; border:1px solid var(--ink-soft); background:transparent; color:var(--ink-soft); padding:4px 10px; border-radius:13px; }
+.chip.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+select.filter{ border:1px solid var(--paper-line); border-radius:12px; padding:5px 9px; font-size:11.5px; background:#fff; color:var(--ink-soft); }
+
+.grid2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.grid3{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+@media(max-width:850px){ .grid2,.grid3{ grid-template-columns:1fr; } }
+
+/* modal */
+.overlay{ position:fixed; inset:0; background:rgba(43,40,34,0.5); display:none; align-items:flex-start; justify-content:center; z-index:60; padding:30px 16px; overflow:auto; }
+.overlay.show{ display:flex; }
+.modal{ background:var(--card); width:100%; max-width:520px; border-radius:var(--radius); padding:22px; border:1px solid var(--paper-line); box-shadow:4px 4px 0 var(--ink); margin-bottom:40px; }
+.modal h2{ font-size:18px; margin-bottom:14px; }
+.field{ margin-bottom:11px; }
+.field label{ display:block; font-family:"Courier New",monospace; font-size:10.5px; color:var(--ink-soft); margin-bottom:3px; letter-spacing:.5px; }
+.field input,.field select,.field textarea{ width:100%; padding:7px 9px; border:1px solid var(--paper-line); border-radius:var(--radius); font-size:13px; background:#fff; color:var(--ink); }
+.field textarea{ resize:vertical; min-height:44px; }
+.row2{ display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+.row3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:9px; }
+.modal-actions{ display:flex; justify-content:space-between; gap:8px; margin-top:16px; align-items:center; }
+.modal-actions .right{ display:flex; gap:8px; }
+.modal-actions button{ font-family:"Courier New",monospace; font-size:12px; padding:7px 15px; border-radius:var(--radius); border:1px solid var(--ink-soft); background:#fff; }
+.modal-actions .save{ background:var(--teal); color:#fff; border-color:var(--teal-deep); }
+.modal-actions .del{ color:var(--rust); border-color:var(--rust); }
+.more-toggle{ font-size:11.5px; color:var(--teal-deep); cursor:pointer; text-decoration:underline; margin:6px 0 12px; display:inline-block; }
+fieldset{ border:1px dashed var(--paper-line); border-radius:var(--radius); padding:10px; margin:0 0 12px; }
+legend{ font-family:"Courier New",monospace; font-size:10.5px; color:var(--ink-soft); padding:0 6px; }
+
+.demo-tag{ background:var(--amber); color:#fff; font-size:9px; padding:1px 6px; border-radius:8px; margin-left:6px; vertical-align:middle; }
+
+/* dashboard specific */
+.today-star-list .item-card{ border-left-color:var(--amber); }
+.attention-card{ border-left-color:var(--rust) !important; background:var(--rust-pale); }
+
+/* calendar */
+.cal-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
+.cal-dow{ font-size:11px; text-align:center; color:var(--ink-soft); font-family:"Courier New",monospace; padding-bottom:4px; }
+.cal-cell{ background:var(--card); border:1px solid var(--paper-line); border-radius:var(--radius); min-height:78px; padding:5px; font-size:11px; cursor:pointer; }
+.cal-cell.other-month{ opacity:.35; }
+.cal-cell.today{ border-color:var(--teal); border-width:2px; }
+.cal-cell .d-num{ font-family:"Courier New",monospace; font-weight:700; margin-bottom:3px; }
+.cal-item{ font-size:9.5px; padding:1px 4px; border-radius:6px; margin-bottom:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cal-item.ev{ background:var(--plum-pale); color:var(--plum); }
+.cal-item.tk{ background:var(--teal-pale); color:var(--teal-deep); }
+
+/* weekly review */
+.review-step{ background:var(--card); border:1px solid var(--paper-line); border-radius:var(--radius); padding:14px 16px; margin-bottom:12px; }
+.review-step h3{ font-size:13.5px; margin-bottom:8px; }
+.review-step textarea{ width:100%; border:1px solid var(--paper-line); border-radius:var(--radius); padding:7px; font-size:12.5px; min-height:44px; }
+
+/* business */
+.biz-card{ background:var(--card); border:1px solid var(--paper-line); border-radius:var(--radius); padding:14px; cursor:pointer; }
+.biz-card:hover{ border-color:var(--teal); }
+.biz-card .n{ font-size:20px; font-family:"Courier New",monospace; color:var(--teal-deep); font-weight:700; }
+
+/* quick add */
+.qa-title-input{ font-size:16px; padding:10px 12px; }
+
+.toast{ position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:8px 18px; border-radius:20px; font-size:12.5px; z-index:80; opacity:0; transition:opacity .3s; }
+.toast.show{ opacity:1; }
+
+.loading-msg{ text-align:center; padding:60px 0; color:var(--ink-soft); font-family:"Courier New",monospace; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="topbar">
+    <div class="brand">📚 圖書館<span>工作空間</span></div>
+    <div class="nav" id="navBar"></div>
+    <div class="top-actions">
+      <input class="searchbox" id="globalSearch" placeholder="搜尋全部…" onkeydown="if(event.key==='Enter')doSearch()">
+      <button class="icon-btn" onclick="openCategoryManager()">分類設定</button>
+      <button class="icon-btn" onclick="openExportMenu()">匯出備份</button>
+    </div>
+  </div>
+  <div class="main" id="mainArea">
+    <div class="loading-msg">載入中…</div>
+  </div>
+</div>
+
+<button class="fab" onclick="openQuickAdd()" title="新增工作">＋</button>
+
+<div class="overlay" id="overlay"><div class="modal" id="modalBody"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   資料模型與儲存
+============================================================ */
+const STORAGE_KEY = 'library-system-db-v1';
+const DEFAULT_CATEGORIES = ["圖書借閱系統","圖書館館場佈置","資媒組","自主學習","高中優質化","教師研習","SEL計畫執行","閱讀推廣","圖書館會議","主管會議資料"];
+
+const STATUS_META = {
+  inbox:{label:'收件匣', icon:'📥'}, scheduled:{label:'已排程', icon:'📅'}, doing:{label:'進行中', icon:'🚧'},
+  waiting:{label:'等待他人', icon:'⏳'}, checking:{label:'待確認', icon:'🔍'}, done:{label:'完成', icon:'✅'}, archived:{label:'已歸檔', icon:'📦'}
+};
+const PRIO_META = { high:'高', mid:'中', low:'低' };
+
+let DB = null;
+let currentTab = 'dashboard';
+let saveTimer = null;
+
+function uid(p){ return (p||'id')+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function daysDiff(dateStr){ if(!dateStr) return null; const d=new Date(dateStr+'T00:00:00'); const t=new Date(todayStr()+'T00:00:00'); return Math.round((d-t)/86400000); }
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
+function fmtDate(d){ return d ? d : '—'; }
+
+async function loadDB(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY, false);
+    DB = res && res.value ? JSON.parse(res.value) : null;
+  }catch(e){ DB = null; }
+  if(!DB){
+    DB = { categories:[...DEFAULT_CATEGORIES], tasks:[], projects:[], meetings:[], results:[], events:[], reviews:[] };
+    seedDemoData();
+    await persist();
+  }
+  // migrate missing arrays for safety
+  ['tasks','projects','meetings','results','events','reviews','categories'].forEach(k=>{ if(!DB[k]) DB[k]=[]; });
+}
+
+async function persist(){
+  clearTimeout(saveTimer);
+  return new Promise(resolve=>{
+    saveTimer = setTimeout(async ()=>{
+      try{
+        const r = await window.storage.set(STORAGE_KEY, JSON.stringify(DB), false);
+        if(!r) console.error('儲存失敗');
+      }catch(e){ console.error('storage error', e); }
+      resolve();
+    }, 150);
+  });
+}
+
+function seedDemoData(){
+  const t = todayStr();
+  const addDays = n=>{ const d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
+  const proj1 = { id:uid('p'), name:'墨墨的甦醒活動', category:'閱讀推廣', description:'學期末閱讀推廣主題活動', startDate:addDays(-5), dueDate:addDays(6), status:'doing', progress:40, nextAction:'確認海報印刷數量', notes:'', isDemo:true };
+  const proj2 = { id:uid('p'), name:'B-3 自主學習計畫', category:'高中優質化', description:'高中優質化 B-3 自主學習子計畫執行與成果整理', startDate:addDays(-20), dueDate:addDays(20), status:'doing', progress:55, nextAction:'彙整期中執行紀錄', notes:'', isDemo:true };
+  DB.projects.push(proj1, proj2);
+  DB.tasks.push(
+    { id:uid('t'), title:'印製墨墨的甦醒海報', content:'', category:'閱讀推廣', projectId:proj1.id, status:'doing', priority:'high', createdAt:t, scheduledDate:t, dueDate:addDays(2), completedDate:'', nextAction:'確認印刷廠報價', progress:30, notes:'', attachments:'', isToday:true, isDemo:true },
+    { id:uid('t'), title:'測試活動 QR Code', content:'', category:'閱讀推廣', projectId:proj1.id, status:'scheduled', priority:'mid', createdAt:t, scheduledDate:addDays(1), dueDate:addDays(3), completedDate:'', nextAction:'', progress:0, notes:'', attachments:'', isToday:false, isDemo:true },
+    { id:uid('t'), title:'A3 數位素養暨資安研習成果整理', content:'', category:'教師研習', projectId:'', status:'inbox', priority:'mid', createdAt:t, scheduledDate:'', dueDate:addDays(5), completedDate:'', nextAction:'', progress:0, notes:'研習結束後待整理簽到與心得', attachments:'', isToday:false, isDemo:true },
+    { id:uid('t'), title:'SEL 教師共學社群邀約', content:'', category:'SEL計畫執行', projectId:'', status:'waiting', priority:'mid', createdAt:t, scheduledDate:'', dueDate:'', completedDate:'', nextAction:'', progress:0, notes:'', attachments:'', isToday:false, isDemo:true,
+      waitingFor:'蕭老師', waitingWhat:'提供研習資料與時段', waitingStart:t, waitingFollowUp:addDays(3) },
+    { id:uid('t'), title:'下次主管會議圖書館資料彙整', content:'', category:'主管會議資料', projectId:'', status:'scheduled', priority:'high', createdAt:t, scheduledDate:addDays(1), dueDate:addDays(2), completedDate:'', nextAction:'', progress:0, notes:'', attachments:'', isToday:true, isDemo:true },
+    { id:uid('t'), title:'整理 B-3 期中執行紀錄', content:'', category:'高中優質化', projectId:proj2.id, status:'doing', priority:'mid', createdAt:t, scheduledDate:t, dueDate:addDays(10), completedDate:'', nextAction:'向承辦老師索取照片', progress:50, notes:'', attachments:'', isToday:false, isDemo:true },
+    { id:uid('t'), title:'圖書借閱系統逾期通知檢查', content:'', category:'圖書借閱系統', projectId:'', status:'scheduled', priority:'low', createdAt:t, scheduledDate:t, dueDate:t, completedDate:'', nextAction:'', progress:0, notes:'', attachments:'', isToday:false, isDemo:true },
+    { id:uid('t'), title:'上學期閱讀推廣成果初稿', content:'', category:'閱讀推廣', projectId:'', status:'done', priority:'mid', createdAt:addDays(-10), scheduledDate:addDays(-3), dueDate:addDays(-1), completedDate:addDays(-1), nextAction:'', progress:100, notes:'已完成初稿，待補照片', attachments:'', isToday:false, isDemo:true }
+  );
+  DB.meetings.push(
+    { id:uid('m'), name:'圖書館業務週會', date:addDays(-2), type:'例行會議', attendees:'圖書館全體同仁', discussion:'各項業務進度盤點', decisions:'加快墨墨的甦醒海報印製', followUps:'確認海報印刷數量\n聯繫印刷廠', category:'圖書館會議', projectId:proj1.id, isDemo:true }
+  );
+  DB.events.push(
+    { id:uid('e'), title:'墨墨的甦醒活動開始', date:addDays(6), category:'閱讀推廣', projectId:proj1.id, isDemo:true }
+  );
+  DB.results.push(
+    { id:uid('r'), title:'112上 圖書館閱讀推廣小活動', date:addDays(-30), category:'閱讀推廣', projectId:'', purpose:'提升借閱率', content:'辦理主題書展與小遊戲', participants:'約 150 人次', summary:'借閱率較前月提升 12%', photos:'', poster:'', ppt:'', signInSheet:'', survey:'', budget:'', docs:'', issues:'活動人力不足', improvements:'下次提前招募志工', reportText:'', isDemo:true }
+  );
+}
+
+/* ============================================================
+   工具：篩選/計算
+============================================================ */
+function activeTasks(){ return DB.tasks.filter(t=>t.status!=='archived'); }
+function isOverdue(t){ if(t.status==='done'||t.status==='archived') return false; const d = t.dueDate; if(!d) return false; return daysDiff(d) < 0; }
+function isDueSoon(t, days=3){ if(t.status==='done'||t.status==='archived') return false; const d=t.dueDate; if(!d) return false; const dd=daysDiff(d); return dd>=0 && dd<=days; }
+function catOf(id){ return id; }
+
+function projectProgressDisplay(p){
+  if(p.progressOverride !== undefined && p.progressOverride !== null && p.progressOverride !== '') return p.progressOverride;
+  const related = DB.tasks.filter(t=>t.projectId===p.id && t.status!=='archived');
+  if(!related.length) return p.progress||0;
+  const done = related.filter(t=>t.status==='done').length;
+  return Math.round(done/related.length*100);
+}
+
+/* ============================================================
+   Nav / Tabs
+============================================================ */
+const TABS = [
+  {k:'dashboard', l:'儀表板'}, {k:'inbox', l:'收件匣'}, {k:'tasks', l:'工作'},
+  {k:'projects', l:'專案'}, {k:'business', l:'業務總覽'}, {k:'calendar', l:'日曆'},
+  {k:'results', l:'成果'}, {k:'meetings', l:'會議'}, {k:'review', l:'週回顧'}
+];
+function renderNav(){
+  document.getElementById('navBar').innerHTML = TABS.map(t=>
+    `<button class="${t.k===currentTab?'active':''}" onclick="switchTab('${t.k}')">${t.l}</button>`
+  ).join('');
+}
+function switchTab(k){ currentTab=k; renderNav(); renderMain(); }
+function renderMain(){
+  const el = document.getElementById('mainArea');
+  if(currentTab==='dashboard') el.innerHTML = viewDashboard();
+  else if(currentTab==='inbox') el.innerHTML = viewInbox();
+  else if(currentTab==='tasks') el.innerHTML = viewTasks();
+  else if(currentTab==='projects') el.innerHTML = viewProjects();
+  else if(currentTab==='business') el.innerHTML = viewBusiness();
+  else if(currentTab==='calendar') el.innerHTML = viewCalendar();
+  else if(currentTab==='results') el.innerHTML = viewResults();
+  else if(currentTab==='meetings') el.innerHTML = viewMeetings();
+  else if(currentTab==='review') el.innerHTML = viewReview();
+  else if(currentTab==='search') el.innerHTML = window._searchResultsHtml || '';
+  afterRenderHooks();
+}
+function afterRenderHooks(){
+  if(currentTab==='calendar') renderCalendarGrid();
+}
+
+/* ============================================================
+   工作卡片 render helper
+============================================================ */
+function taskCardHtml(t, opts={}){
+  const st = STATUS_META[t.status]||{label:t.status,icon:''};
+  const over = isOverdue(t);
+  const soon = !over && isDueSoon(t);
+  let cls = 'item-card st-'+t.status + (over?' overdue':'');
+  const proj = DB.projects.find(p=>p.id===t.projectId);
+  let badges = `<span class="badge prio-${t.priority}">優先${PRIO_META[t.priority]||''}</span>`;
+  if(t.dueDate) badges += `<span class="badge ${over?'due-over':(soon?'due-soon':'')}">${over?'已逾期 ':'截止 '}${t.dueDate}</span>`;
+  if(t.scheduledDate) badges += `<span class="badge">排程 ${t.scheduledDate}</span>`;
+  if(t.status==='waiting') badges += `<span class="badge waiting">等待：${escapeHtml(t.waitingFor||'?')} · 追蹤 ${t.waitingFollowUp||'—'}</span>`;
+  if(t.isDemo) badges += `<span class="demo-tag">DEMO</span>`;
+  return `
+  <div class="${cls}">
+    <div class="item-top">
+      <div>
+        <div class="item-title ${t.status==='done'?'done':''}">${st.icon} ${escapeHtml(t.title)}</div>
+        <div class="item-sub">${escapeHtml(t.category||'未分類')}${proj?(' · 專案：'+escapeHtml(proj.name)):''}</div>
+      </div>
+    </div>
+    ${t.nextAction?`<div class="item-notes">下一步：${escapeHtml(t.nextAction)}</div>`:''}
+    ${t.notes?`<div class="item-notes">${escapeHtml(t.notes)}</div>`:''}
+    <div class="badges">${badges}</div>
+    <div class="actions-row">
+      ${t.status!=='done' ? `<button onclick="quickComplete('${t.id}')">☑ 完成</button>`:''}
+      ${t.status!=='doing' ? `<button onclick="quickSetStatus('${t.id}','doing')">→ 進行</button>`:''}
+      ${t.status!=='waiting' ? `<button onclick="quickSetStatus('${t.id}','waiting')">⏳ 等待</button>`:''}
+      <button onclick="openTaskModal('${t.id}')">📅 編輯</button>
+      <button class="star ${t.isToday?'on':''}" onclick="toggleStar('${t.id}')">${t.isToday?'★ 今日重點':'☆ 標為今日重點'}</button>
+      <button class="del" onclick="deleteTask('${t.id}')">刪除</button>
+    </div>
+  </div>`;
+}
+
+async function quickComplete(id){
+  const t = DB.tasks.find(x=>x.id===id); if(!t) return;
+  t.status='done'; t.completedDate=todayStr();
+  await persist(); renderMain();
+  toast('已完成 ✓ 記得之後在「成果」補上紀錄');
+}
+async function quickSetStatus(id, status){
+  const t = DB.tasks.find(x=>x.id===id); if(!t) return;
+  t.status = status;
+  if(status==='waiting' && !t.waitingStart) t.waitingStart = todayStr();
+  await persist(); renderMain();
+}
+async function toggleStar(id){
+  const t = DB.tasks.find(x=>x.id===id); if(!t) return;
+  t.isToday = !t.isToday;
+  await persist(); renderMain();
+}
+async function deleteTask(id){
+  if(!confirm('確定要刪除這個工作嗎？')) return;
+  DB.tasks = DB.tasks.filter(t=>t.id!==id);
+  await persist(); renderMain();
+}
+
+/* ============================================================
+   Dashboard
+============================================================ */
+function viewDashboard(){
+  const t = todayStr();
+  const tasks = activeTasks();
+  const todayList = tasks.filter(x=> x.status!=='done' && (
+    x.scheduledDate===t || x.dueDate===t || isOverdue(x) && x.priority==='high' || x.waitingFollowUp===t
+  ));
+  const starList = tasks.filter(x=>x.isToday && x.status!=='done');
+  const overdue = tasks.filter(isOverdue);
+  const dueSoon = tasks.filter(x=>isDueSoon(x,3) && !isOverdue(x));
+  const waitingLong = tasks.filter(x=>x.status==='waiting' && x.waitingStart && daysDiff(x.waitingStart) <= -7);
+  const followToday = tasks.filter(x=>x.status==='waiting' && x.waitingFollowUp===t);
+  const staleProjects = DB.projects.filter(p=>p.status!=='done' && p.dueDate ? true : true).filter(p=>{
+    const rel = DB.tasks.filter(x=>x.projectId===p.id);
+    const last = rel.reduce((acc,x)=> !acc || (x.scheduledDate||x.createdAt) > acc ? (x.scheduledDate||x.createdAt) : acc, p.startDate);
+    return daysDiff(last) !== null && daysDiff(last) <= -14 && p.status!=='done';
+  });
+  const attentionItems = [...overdue.map(x=>({t:x,r:'已逾期'})), ...dueSoon.map(x=>({t:x,r:'即將截止'})), ...waitingLong.map(x=>({t:x,r:'等待超過 7 天'})), ...followToday.map(x=>({t:x,r:'今天該追蹤'}))];
+
+  const week = [...Array(7)].map((_,i)=>{ const d=new Date(); d.setDate(d.getDate()+i); return d.toISOString().slice(0,10); });
+  const weekTasks = week.map(d=>({date:d, items: tasks.filter(x=> (x.scheduledDate===d || x.dueDate===d) && x.status!=='done')}));
+
+  const doingProjects = DB.projects.filter(p=>p.status==='doing'||p.status==='進行中'||!p.status||p.status==='doing');
+
+  return `
+  <div class="stat-row">
+    <div class="stat-card"><div class="n">${t.slice(5)}</div><div class="l">今天日期</div></div>
+    <div class="stat-card"><div class="n">${todayList.length}</div><div class="l">今天待辦</div></div>
+    <div class="stat-card"><div class="n">${weekTasks.reduce((a,d)=>a+d.items.length,0)}</div><div class="l">本週即將到期</div></div>
+    <div class="stat-card ${overdue.length?'warn':''}"><div class="n">${overdue.length}</div><div class="l">已逾期</div></div>
+    <div class="stat-card"><div class="n">${tasks.filter(x=>x.status==='waiting').length}</div><div class="l">等待追蹤</div></div>
+    <div class="stat-card"><div class="n">${DB.projects.filter(p=>p.status==='doing').length}</div><div class="l">進行中專案</div></div>
+  </div>
+
+  <div class="section-title">🔥 今天要做</div>
+  <div class="card-list">${todayList.length? todayList.map(x=>taskCardHtml(x)).join('') : '<div class="empty-note">今天沒有排定或到期的工作 — 很好！</div>'}</div>
+
+  <div class="section-title">⭐ 今日最重要</div>
+  <div class="toolbar"><span class="empty-note">從任何工作卡片點「☆ 標為今日重點」即可加入這裡（建議 3–5 件）</span></div>
+  <div class="card-list today-star-list">${starList.length? starList.map(x=>taskCardHtml(x)).join('') : '<div class="empty-note">尚未指定今日最重要的工作</div>'}</div>
+
+  <div class="section-title">⚠️ 需要注意</div>
+  <div class="card-list">
+    ${attentionItems.length ? attentionItems.map(({t:x,r})=>`
+      <div class="item-card attention-card">
+        <div class="item-top"><div><div class="item-title">${escapeHtml(x.title)}</div><div class="item-sub">${escapeHtml(x.category)} · <b>${r}</b></div></div></div>
+        <div class="actions-row">
+          <button onclick="openTaskModal('${x.id}')">編輯</button>
+          ${x.status!=='done'?`<button onclick="quickComplete('${x.id}')">☑ 完成</button>`:''}
+        </div>
+      </div>`).join('') : '<div class="empty-note">目前沒有需要特別注意的事項</div>'}
+    ${staleProjects.length ? staleProjects.map(p=>`
+      <div class="item-card attention-card">
+        <div class="item-top"><div><div class="item-title">專案：${escapeHtml(p.name)}</div><div class="item-sub">${escapeHtml(p.category)} · 超過 14 天沒有更新</div></div></div>
+        <div class="actions-row"><button onclick="openProjectModal('${p.id}')">查看專案</button></div>
+      </div>`).join('') : ''}
+  </div>
+
+  <div class="section-title">📅 本週</div>
+  <div class="card-list">
+    ${weekTasks.map(d=>`
+      <div class="item-card" style="border-left-color:var(--teal-pale)">
+        <div class="item-sub mono">${d.date}${d.date===t?'（今天）':''}</div>
+        ${d.items.length? d.items.map(x=>`<div style="font-size:12.5px;padding:2px 0;">${STATUS_META[x.status].icon} ${escapeHtml(x.title)} <span class="empty-note">(${escapeHtml(x.category)})</span></div>`).join('') : '<div class="empty-note">—</div>'}
+      </div>`).join('')}
+  </div>
+
+  <div class="section-title">🚧 進行中專案</div>
+  <div class="grid3">
+    ${doingProjects.length ? doingProjects.map(p=>`
+      <div class="item-card" onclick="openProjectModal('${p.id}')" style="cursor:pointer;">
+        <div class="item-title">${escapeHtml(p.name)}</div>
+        <div class="item-sub">${escapeHtml(p.category)}</div>
+        <div style="margin:6px 0;background:var(--paper-line);height:6px;border-radius:3px;overflow:hidden;">
+          <div style="background:var(--teal);height:100%;width:${projectProgressDisplay(p)}%;"></div>
+        </div>
+        <div class="item-sub">進度 ${projectProgressDisplay(p)}% · 截止 ${fmtDate(p.dueDate)}</div>
+        <div class="item-notes">下一步：${escapeHtml(p.nextAction||'尚未設定')}</div>
+      </div>`).join('') : '<div class="empty-note">目前沒有進行中的專案</div>'}
+  </div>
+  `;
+}
+
+/* ============================================================
+   Inbox
+============================================================ */
+function viewInbox(){
+  const inboxTasks = DB.tasks.filter(t=>t.status==='inbox');
+  return `
+  <div class="section-title">📥 快速加入收件匣</div>
+  <div class="field" style="max-width:480px;">
+    <input type="text" id="inboxQuickInput" placeholder="想到什麼就打幾個字，按 Enter 直接記下…" onkeydown="if(event.key==='Enter')quickInboxAdd()">
+  </div>
+  <div class="section-title">待整理（${inboxTasks.length}）</div>
+  <div class="empty-note" style="margin-bottom:10px;">整理時依序決定：這是什麼業務？屬於哪個專案？下一步是什麼？何時做？有沒有截止日？優先程度？</div>
+  <div class="card-list">
+    ${inboxTasks.length ? inboxTasks.map(t=>`
+      <div class="item-card st-inbox">
+        <div class="item-title">${escapeHtml(t.title)}</div>
+        <div class="item-sub">建立於 ${t.createdAt}</div>
+        <div class="actions-row">
+          <button onclick="openTaskModal('${t.id}', {inboxSort:true})">📝 整理這筆</button>
+          <button class="del" onclick="deleteTask('${t.id}')">刪除</button>
+        </div>
+      </div>`).join('') : '<div class="empty-note">收件匣是空的，太棒了！</div>'}
+  </div>`;
+}
+async function quickInboxAdd(){
+  const el = document.getElementById('inboxQuickInput');
+  const title = el.value.trim();
+  if(!title) return;
+  DB.tasks.push({ id:uid('t'), title, content:'', category:'', projectId:'', status:'inbox', priority:'mid',
+    createdAt:todayStr(), scheduledDate:'', dueDate:'', completedDate:'', nextAction:'', progress:0, notes:'', attachments:'', isToday:false });
+  await persist();
+  el.value='';
+  renderMain();
+  toast('已記下，繼續原本的工作吧');
+}
+
+/* ============================================================
+   Tasks
+============================================================ */
+let taskFilters = { cat:'全部', status:'全部', prio:'全部' };
+function viewTasks(){
+  let list = activeTasks();
+  if(taskFilters.cat!=='全部') list = list.filter(t=>t.category===taskFilters.cat);
+  if(taskFilters.status!=='全部') list = list.filter(t=>t.status===taskFilters.status);
+  if(taskFilters.prio!=='全部') list = list.filter(t=>t.priority===taskFilters.prio);
+  list = list.sort((a,b)=> (a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
+  return `
+  <div class="section-title">所有工作（${list.length}）<button class="icon-btn" style="margin-left:auto;background:var(--teal);color:#fff;border:none;" onclick="openTaskModal(null)">＋ 新增工作</button></div>
+  <div class="toolbar">
+    <select class="filter" onchange="taskFilters.cat=this.value;renderMain()">
+      <option ${taskFilters.cat==='全部'?'selected':''}>全部</option>
+      ${DB.categories.map(c=>`<option ${taskFilters.cat===c?'selected':''}>${c}</option>`).join('')}
+    </select>
+    <select class="filter" onchange="taskFilters.status=this.value;renderMain()">
+      <option value="全部">全部狀態</option>
+      ${Object.entries(STATUS_META).map(([k,v])=>`<option value="${k}" ${taskFilters.status===k?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
+    </select>
+    <select class="filter" onchange="taskFilters.prio=this.value;renderMain()">
+      <option value="全部">全部優先度</option>
+      ${Object.entries(PRIO_META).map(([k,v])=>`<option value="${k}" ${taskFilters.prio===k?'selected':''}>優先${v}</option>`).join('')}
+    </select>
+  </div>
+  <div class="card-list">${list.length? list.map(t=>taskCardHtml(t)).join('') : '<div class="empty-note">沒有符合條件的工作</div>'}</div>
+  `;
+}
+
+/* ============================================================
+   Projects
+============================================================ */
+function viewProjects(){
+  const list = DB.projects.slice().sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
+  return `
+  <div class="section-title">專案（${list.length}）<button class="icon-btn" style="margin-left:auto;background:var(--teal);color:#fff;border:none;" onclick="openProjectModal(null)">＋ 新增專案</button></div>
+  <div class="grid2">
+    ${list.length ? list.map(p=>{
+      const rel = DB.tasks.filter(t=>t.projectId===p.id && t.status!=='archived');
+      return `
+      <div class="item-card">
+        <div class="item-top">
+          <div>
+            <div class="item-title">${escapeHtml(p.name)} ${p.isDemo?'<span class="demo-tag">DEMO</span>':''}</div>
+            <div class="item-sub">${escapeHtml(p.category)} · ${fmtDate(p.startDate)} → ${fmtDate(p.dueDate)}</div>
+          </div>
+          <span class="pill cat">${p.status||'doing'}</span>
+        </div>
+        <div style="margin:8px 0 4px;background:var(--paper-line);height:6px;border-radius:3px;overflow:hidden;">
+          <div style="background:var(--teal);height:100%;width:${projectProgressDisplay(p)}%;"></div>
+        </div>
+        <div class="item-sub">進度 ${projectProgressDisplay(p)}%（${rel.filter(t=>t.status==='done').length}/${rel.length} 項工作完成）</div>
+        <div class="item-notes">下一步：${escapeHtml(p.nextAction||'尚未設定 ⚠️')}</div>
+        <div class="actions-row">
+          <button onclick="openProjectModal('${p.id}')">編輯專案</button>
+          <button onclick="addTaskUnderProject('${p.id}')">＋ 新增工作到此專案</button>
+        </div>
+        ${rel.length? `<div style="margin-top:8px;border-top:1px dashed var(--paper-line);padding-top:8px;">
+          ${rel.slice(0,5).map(t=>`<div style="font-size:12px;padding:2px 0;">${STATUS_META[t.status].icon} ${escapeHtml(t.title)}</div>`).join('')}
+          ${rel.length>5?`<div class="empty-note">還有 ${rel.length-5} 項…</div>`:''}
+        </div>`:''}
+      </div>`;
+    }).join('') : '<div class="empty-note">尚未建立任何專案</div>'}
+  </div>`;
+}
+function addTaskUnderProject(pid){
+  openTaskModal(null, {presetProjectId:pid});
+}
+
+/* ============================================================
+   Business overview
+============================================================ */
+function viewBusiness(){
+  return `
+  <div class="section-title">業務總覽</div>
+  <div class="grid3">
+    ${DB.categories.map(c=>{
+      const tks = activeTasks().filter(t=>t.category===c);
+      const notDone = tks.filter(t=>t.status!=='done');
+      return `<div class="biz-card" onclick="showBusinessDetail('${c.replace(/'/g,"\\'")}')">
+        <div>${escapeHtml(c)}</div>
+        <div class="n">${notDone.length}</div>
+        <div class="empty-note">未完成工作</div>
+      </div>`;
+    }).join('')}
+  </div>
+  <div id="bizDetail"></div>
+  `;
+}
+function showBusinessDetail(cat){
+  const tks = activeTasks().filter(t=>t.category===cat);
+  const projs = DB.projects.filter(p=>p.category===cat);
+  const meets = DB.meetings.filter(m=>m.category===cat);
+  const results = DB.results.filter(r=>r.category===cat);
+  const html = `
+    <div class="section-title">📂 ${escapeHtml(cat)}</div>
+    <h3 style="font-size:13px;margin:14px 0 6px;">進行中專案（${projs.filter(p=>p.status==='doing').length}）</h3>
+    <div class="card-list">${projs.filter(p=>p.status==='doing').map(p=>taskCardLike(p.name,p.nextAction)).join('')||'<div class="empty-note">無</div>'}</div>
+    <h3 style="font-size:13px;margin:14px 0 6px;">尚未完成工作（${tks.filter(t=>t.status!=='done').length}）</h3>
+    <div class="card-list">${tks.filter(t=>t.status!=='done').map(t=>taskCardHtml(t)).join('')||'<div class="empty-note">無</div>'}</div>
+    <h3 style="font-size:13px;margin:14px 0 6px;">等待事項（${tks.filter(t=>t.status==='waiting').length}）</h3>
+    <div class="card-list">${tks.filter(t=>t.status==='waiting').map(t=>taskCardHtml(t)).join('')||'<div class="empty-note">無</div>'}</div>
+    <h3 style="font-size:13px;margin:14px 0 6px;">已完成事項（${tks.filter(t=>t.status==='done').length}）</h3>
+    <div class="card-list">${tks.filter(t=>t.status==='done').map(t=>taskCardHtml(t)).join('')||'<div class="empty-note">無</div>'}</div>
+    <h3 style="font-size:13px;margin:14px 0 6px;">相關會議（${meets.length}）</h3>
+    <div class="card-list">${meets.map(m=>`<div class="item-card"><div class="item-title">${escapeHtml(m.name)}</div><div class="item-sub">${m.date}</div></div>`).join('')||'<div class="empty-note">無</div>'}</div>
+    <h3 style="font-size:13px;margin:14px 0 6px;">相關成果（${results.length}）</h3>
+    <div class="card-list">${results.map(r=>`<div class="item-card"><div class="item-title">${escapeHtml(r.title)}</div><div class="item-sub">${r.date}</div></div>`).join('')||'<div class="empty-note">無</div>'}</div>
+  `;
+  document.getElementById('bizDetail').innerHTML = html;
+}
+function taskCardLike(title, sub){
+  return `<div class="item-card"><div class="item-title">${escapeHtml(title)}</div><div class="item-notes">下一步：${escapeHtml(sub||'尚未設定')}</div></div>`;
+}
+
+/* ============================================================
+   Calendar
+============================================================ */
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth(); // 0-based
+function viewCalendar(){
+  return `
+  <div class="cal-head">
+    <button class="icon-btn" style="color:var(--ink);border-color:var(--ink-faint);" onclick="calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderMain()">← 上個月</button>
+    <div class="section-title" style="margin:0;">${calYear} 年 ${calMonth+1} 月</div>
+    <button class="icon-btn" style="color:var(--ink);border-color:var(--ink-faint);" onclick="calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderMain()">下個月 →</button>
+  </div>
+  <div class="toolbar"><button class="icon-btn" style="color:var(--ink);border-color:var(--ink-faint);" onclick="openEventModal(null)">＋ 新增 Event</button></div>
+  <div id="calGridWrap"></div>
+  <div id="calDayDetail"></div>
+  `;
+}
+function renderCalendarGrid(){
+  const wrap = document.getElementById('calGridWrap');
+  if(!wrap) return;
+  const first = new Date(calYear, calMonth, 1);
+  const startDow = first.getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const cells = [];
+  for(let i=0;i<startDow;i++) cells.push(null);
+  for(let d=1; d<=daysInMonth; d++) cells.push(d);
+  while(cells.length % 7 !== 0) cells.push(null);
+  const t = todayStr();
+  const dow = ['日','一','二','三','四','五','六'];
+  let html = `<div class="cal-grid">` + dow.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  cells.forEach(d=>{
+    if(d===null){ html += `<div class="cal-cell other-month"></div>`; return; }
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const evs = DB.events.filter(e=>e.date===dateStr);
+    const tks = DB.tasks.filter(x=>(x.dueDate===dateStr||x.scheduledDate===dateStr) && x.status!=='archived');
+    html += `<div class="cal-cell ${dateStr===t?'today':''}" onclick="showCalDay('${dateStr}')">
+      <div class="d-num">${d}</div>
+      ${evs.slice(0,2).map(e=>`<div class="cal-item ev">◆ ${escapeHtml(e.title)}</div>`).join('')}
+      ${tks.slice(0,3).map(x=>`<div class="cal-item tk">${escapeHtml(x.title)}</div>`).join('')}
+      ${(evs.length+tks.length)>5?`<div class="empty-note">…</div>`:''}
+    </div>`;
+  });
+  html += `</div>`;
+  wrap.innerHTML = html;
+}
+function showCalDay(dateStr){
+  const evs = DB.events.filter(e=>e.date===dateStr);
+  const tks = DB.tasks.filter(x=>(x.dueDate===dateStr||x.scheduledDate===dateStr) && x.status!=='archived');
+  document.getElementById('calDayDetail').innerHTML = `
+    <div class="section-title">${dateStr}</div>
+    <h3 style="font-size:13px;">Events</h3>
+    <div class="card-list">${evs.map(e=>`<div class="item-card"><div class="item-title">◆ ${escapeHtml(e.title)}</div><div class="item-sub">${escapeHtml(e.category)}</div>
+      <div class="actions-row"><button class="del" onclick="deleteEvent('${e.id}')">刪除</button></div></div>`).join('')||'<div class="empty-note">無</div>'}</div>
+    <h3 style="font-size:13px;margin-top:10px;">Tasks</h3>
+    <div class="card-list">${tks.map(x=>taskCardHtml(x)).join('')||'<div class="empty-note">無</div>'}</div>
+  `;
+}
+async function deleteEvent(id){ DB.events = DB.events.filter(e=>e.id!==id); await persist(); renderMain(); }
+
+/* ============================================================
+   Results
+============================================================ */
+let resultFilterCat = '全部';
+function viewResults(){
+  let list = DB.results.slice();
+  if(resultFilterCat!=='全部') list = list.filter(r=>r.category===resultFilterCat);
+  list.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  return `
+  <div class="section-title">成果庫（${list.length}）<button class="icon-btn" style="margin-left:auto;background:var(--teal);color:#fff;border:none;" onclick="openResultModal(null)">＋ 新增成果</button></div>
+  <div class="toolbar">
+    <select class="filter" onchange="resultFilterCat=this.value;renderMain()">
+      <option ${resultFilterCat==='全部'?'selected':''}>全部</option>
+      ${DB.categories.map(c=>`<option ${resultFilterCat===c?'selected':''}>${c}</option>`).join('')}
+    </select>
+  </div>
+  <div class="card-list">
+    ${list.length? list.map(r=>`
+      <div class="item-card">
+        <div class="item-top"><div><div class="item-title">${escapeHtml(r.title)} ${r.isDemo?'<span class="demo-tag">DEMO</span>':''}</div>
+        <div class="item-sub">${r.date} · ${escapeHtml(r.category)}</div></div></div>
+        ${r.summary?`<div class="item-notes">${escapeHtml(r.summary)}</div>`:''}
+        <div class="actions-row"><button onclick="openResultModal('${r.id}')">查看/編輯</button><button class="del" onclick="deleteResult('${r.id}')">刪除</button></div>
+      </div>`).join('') : '<div class="empty-note">尚未建立任何成果紀錄</div>'}
+  </div>`;
+}
+async function deleteResult(id){ if(!confirm('確定刪除這筆成果？'))return; DB.results=DB.results.filter(r=>r.id!==id); await persist(); renderMain(); }
+
+/* ============================================================
+   Meetings
+============================================================ */
+function viewMeetings(){
+  const list = DB.meetings.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  return `
+  <div class="section-title">會議紀錄（${list.length}）<button class="icon-btn" style="margin-left:auto;background:var(--teal);color:#fff;border:none;" onclick="openMeetingModal(null)">＋ 新增會議</button></div>
+  <div class="card-list">
+    ${list.length? list.map(m=>`
+      <div class="item-card">
+        <div class="item-top"><div><div class="item-title">${escapeHtml(m.name)} ${m.isDemo?'<span class="demo-tag">DEMO</span>':''}</div>
+        <div class="item-sub">${m.date} · ${escapeHtml(m.type||'')} · ${escapeHtml(m.category||'')}</div></div></div>
+        ${m.decisions?`<div class="item-notes"><b>決議：</b>${escapeHtml(m.decisions)}</div>`:''}
+        ${m.followUps?`<div class="item-notes"><b>後續工作：</b>${escapeHtml(m.followUps)}</div>`:''}
+        <div class="actions-row">
+          <button onclick="openMeetingModal('${m.id}')">編輯</button>
+          ${m.followUps?`<button onclick="convertFollowUpsToTasks('${m.id}')">⚡ 後續工作轉為 Task</button>`:''}
+          <button class="del" onclick="deleteMeeting('${m.id}')">刪除</button>
+        </div>
+      </div>`).join('') : '<div class="empty-note">尚未建立任何會議紀錄</div>'}
+  </div>`;
+}
+async function deleteMeeting(id){ if(!confirm('確定刪除這筆會議？'))return; DB.meetings=DB.meetings.filter(m=>m.id!==id); await persist(); renderMain(); }
+async function convertFollowUpsToTasks(id){
+  const m = DB.meetings.find(x=>x.id===id); if(!m||!m.followUps) return;
+  const lines = m.followUps.split('\n').map(s=>s.trim()).filter(Boolean);
+  lines.forEach(line=>{
+    DB.tasks.push({ id:uid('t'), title:line, content:'源自會議：'+m.name, category:m.category||'', projectId:m.projectId||'',
+      status:'inbox', priority:'mid', createdAt:todayStr(), scheduledDate:'', dueDate:'', completedDate:'', nextAction:'', progress:0, notes:'', attachments:'', isToday:false });
+  });
+  await persist(); toast(`已將 ${lines.length} 項後續工作加入收件匣`); switchTab('inbox');
+}
+
+/* ============================================================
+   Weekly review
+============================================================ */
+function viewReview(){
+  const t = todayStr();
+  const inboxCount = DB.tasks.filter(x=>x.status==='inbox').length;
+  const overdue = activeTasks().filter(isOverdue);
+  const waiting = activeTasks().filter(x=>x.status==='waiting');
+  const followToday = waiting.filter(x=>x.waitingFollowUp && daysDiff(x.waitingFollowUp)<=0);
+  const dueSoon14 = activeTasks().filter(x=>x.status!=='done' && x.dueDate && daysDiff(x.dueDate)>=0 && daysDiff(x.dueDate)<=14);
+  const doingProjects = DB.projects.filter(p=>p.status==='doing');
+  const noNext = doingProjects.filter(p=>!p.nextAction);
+  const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
+  const doneThisWeek = DB.tasks.filter(x=>x.status==='done' && x.completedDate && x.completedDate >= weekAgo.toISOString().slice(0,10));
+  const noResultLinked = doneThisWeek; // 簡化：本週完成但可能尚未寫成果
+
+  const lastReview = DB.reviews[DB.reviews.length-1];
+
+  return `
+  <div class="section-title">🧭 每週回顧</div>
+  <div class="empty-note" style="margin-bottom:14px;">${lastReview? '上次回顧：'+lastReview.date : '這是你的第一次週回顧'}</div>
+
+  <div class="review-step"><h3>1. 📥 Inbox 還有什麼？（${inboxCount} 筆）</h3>
+    <div class="card-list">${DB.tasks.filter(x=>x.status==='inbox').map(x=>taskCardHtml(x)).join('')||'<div class="empty-note">收件匣是空的</div>'}</div>
+  </div>
+  <div class="review-step"><h3>2. ⚠️ 有沒有逾期？（${overdue.length} 筆）</h3>
+    <div class="card-list">${overdue.map(x=>taskCardHtml(x)).join('')||'<div class="empty-note">沒有逾期項目</div>'}</div>
+  </div>
+  <div class="review-step"><h3>3. ⏳ 有哪些人在等待？（${waiting.length} 筆）</h3>
+    <div class="card-list">${waiting.map(x=>taskCardHtml(x)).join('')||'<div class="empty-note">目前沒有等待中的事項</div>'}</div>
+  </div>
+  <div class="review-step"><h3>4. 🔔 哪些需要追蹤？（今天，${followToday.length} 筆）</h3>
+    <div class="card-list">${followToday.map(x=>taskCardHtml(x)).join('')||'<div class="empty-note">今天沒有需要追蹤的等待事項</div>'}</div>
+  </div>
+  <div class="review-step"><h3>5. 📅 未來兩週有哪些截止？（${dueSoon14.length} 筆）</h3>
+    <div class="card-list">${dueSoon14.map(x=>taskCardHtml(x)).join('')||'<div class="empty-note">未來兩週沒有截止項目</div>'}</div>
+  </div>
+  <div class="review-step"><h3>6. 🚧 每個進行中專案下一步是什麼？${noNext.length?`（⚠️ ${noNext.length} 個尚未設定）`:''}</h3>
+    <div class="card-list">${doingProjects.map(p=>`
+      <div class="item-card ${!p.nextAction?'attention-card':''}">
+        <div class="item-title">${escapeHtml(p.name)}</div>
+        <div class="item-notes">下一步：${escapeHtml(p.nextAction||'⚠️ 尚未設定，請補上')}</div>
+        <div class="actions-row"><button onclick="openProjectModal('${p.id}')">編輯</button></div>
+      </div>`).join('')||'<div class="empty-note">目前沒有進行中的專案</div>'}</div>
+  </div>
+  <div class="review-step"><h3>7. ✅ 本週完成什麼？（${doneThisWeek.length} 筆）</h3>
+    <div class="card-list">${doneThisWeek.map(x=>taskCardHtml(x)).join('')||'<div class="empty-note">本週尚無完成項目</div>'}</div>
+  </div>
+  <div class="review-step"><h3>8. 🏆 有哪些成果尚未紀錄？</h3>
+    <div class="empty-note">檢視上方「本週完成」清單，重要的活動／專案／研習記得到「成果」頁新增紀錄。</div>
+  </div>
+  <div class="review-step"><h3>9. ⭐ 下週最重要的 3–5 件事情是什麼？</h3>
+    <div class="empty-note">到「工作」或「儀表板」點選 ☆ 標為今日重點，或直接在下方寫下重點方向：</div>
+    <textarea id="reviewNotes" placeholder="下週重點方向…">${lastReview? escapeHtml(lastReview.notes||''):''}</textarea>
+  </div>
+  <button class="add-btn-like" style="background:var(--teal);color:#fff;border:none;padding:10px 20px;border-radius:4px;font-family:'Courier New',monospace;" onclick="completeReview()">✓ 完成本週回顧</button>
+  `;
+}
+async function completeReview(){
+  const notes = document.getElementById('reviewNotes').value;
+  DB.reviews.push({ date: todayStr(), notes });
+  await persist();
+  toast('本週回顧已儲存，做得好！');
+  renderMain();
+}
+
+/* ============================================================
+   Search
+============================================================ */
+function doSearch(){
+  const q = document.getElementById('globalSearch').value.trim().toLowerCase();
+  if(!q){ return; }
+  const inStr = (s)=> (s||'').toLowerCase().includes(q);
+  const tasks = DB.tasks.filter(t=> inStr(t.title)||inStr(t.notes)||inStr(t.content)||inStr(t.category)||inStr(t.nextAction));
+  const projects = DB.projects.filter(p=> inStr(p.name)||inStr(p.description)||inStr(p.category)||inStr(p.notes));
+  const meetings = DB.meetings.filter(m=> inStr(m.name)||inStr(m.discussion)||inStr(m.decisions)||inStr(m.followUps)||inStr(m.category));
+  const results = DB.results.filter(r=> inStr(r.title)||inStr(r.summary)||inStr(r.content)||inStr(r.category)||inStr(r.reportText));
+  window._searchResultsHtml = `
+    <div class="section-title">🔍 搜尋「${escapeHtml(q)}」的結果</div>
+    <h3 style="font-size:13px;">工作（${tasks.length}）</h3>
+    <div class="card-list">${tasks.map(t=>taskCardHtml(t)).join('')||'<div class="empty-note">無</div>'}</div>
+    <h3 style="font-size:13px;margin-top:14px;">專案（${projects.length}）</h3>
+    <div class="card-list">${projects.map(p=>`<div class="item-card"><div class="item-title">${escapeHtml(p.name)}</div><div class="item-sub">${escapeHtml(p.category)}</div>
+      <div class="actions-row"><button onclick="openProjectModal('${p.id}')">查看</button></div></div>`).join('')||'<div class="empty-note">無</div>'}</div>
+    <h3 style="font-size:13px;margin-top:14px;">會議（${meetings.length}）</h3>
+    <div class="card-list">${meetings.map(m=>`<div class="item-card"><div class="item-title">${escapeHtml(m.name)}</div><div class="item-sub">${m.date}</div>
+      <div class="actions-row"><button onclick="openMeetingModal('${m.id}')">查看</button></div></div>`).join('')||'<div class="empty-note">無</div>'}</div>
+    <h3 style="font-size:13px;margin-top:14px;">成果（${results.length}）</h3>
+    <div class="card-list">${results.map(r=>`<div class="item-card"><div class="item-title">${escapeHtml(r.title)}</div><div class="item-sub">${r.date}</div>
+      <div class="actions-row"><button onclick="openResultModal('${r.id}')">查看</button></div></div>`).join('')||'<div class="empty-note">無</div>'}</div>
+  `;
+  currentTab='search';
+  renderNav();
+  document.getElementById('mainArea').innerHTML = window._searchResultsHtml;
+}
+
+/* ============================================================
+   Modals: Quick Add / Task / Project / Meeting / Result / Event / Category
+============================================================ */
+function openOverlay(html){ document.getElementById('modalBody').innerHTML = html; document.getElementById('overlay').classList.add('show'); }
+function closeOverlay(){ document.getElementById('overlay').classList.remove('show'); }
+
+function openQuickAdd(){
+  openOverlay(`
+    <h2>快速新增</h2>
+    <div class="field"><input type="text" id="qaTitle" class="qa-title-input" placeholder="輸入工作名稱，按 Enter 直接記入收件匣" autofocus onkeydown="if(event.key==='Enter')quickAddSubmit(false)"></div>
+    <div class="more-toggle" onclick="document.getElementById('qaMore').classList.toggle('hidden')">展開更多欄位 ▾</div>
+    <div id="qaMore" class="hidden">
+      <div class="row2">
+        <div class="field"><label>業務分類</label><select id="qaCat"><option value="">未分類</option>${DB.categories.map(c=>`<option>${c}</option>`).join('')}</select></div>
+        <div class="field"><label>優先程度</label><select id="qaPrio"><option value="high">高</option><option value="mid" selected>中</option><option value="low">低</option></select></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>排定日期</label><input type="date" id="qaSched"></div>
+        <div class="field"><label>截止日期</label><input type="date" id="qaDue"></div>
+      </div>
+      <div class="field"><label>備註</label><textarea id="qaNotes"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button onclick="closeOverlay()">取消</button>
+      <div class="right"><button class="save" onclick="quickAddSubmit(true)">儲存</button></div>
+    </div>
+  `);
+  setTimeout(()=>document.getElementById('qaTitle').focus(), 50);
+}
+async function quickAddSubmit(fromButton){
+  const title = document.getElementById('qaTitle').value.trim();
+  if(!title){ return; }
+  const moreOpen = !document.getElementById('qaMore').classList.contains('hidden');
+  const task = { id:uid('t'), title, content:'', category: moreOpen?document.getElementById('qaCat').value:'', projectId:'',
+    status: moreOpen && (document.getElementById('qaSched').value||document.getElementById('qaDue').value) ? 'scheduled' : 'inbox',
+    priority: moreOpen?document.getElementById('qaPrio').value:'mid',
+    createdAt:todayStr(), scheduledDate: moreOpen?document.getElementById('qaSched').value:'', dueDate: moreOpen?document.getElementById('qaDue').value:'',
+    completedDate:'', nextAction:'', progress:0, notes: moreOpen?document.getElementById('qaNotes').value:'', attachments:'', isToday:false };
+  DB.tasks.push(task);
+  await persist();
+  closeOverlay();
+  renderMain();
+  toast('已加入');
+}
+
+function openTaskModal(id, opts={}){
+  const t = id ? DB.tasks.find(x=>x.id===id) : {
+    id:'', title:'', content:'', category: opts.presetProjectId ? (DB.projects.find(p=>p.id===opts.presetProjectId)||{}).category : '',
+    projectId: opts.presetProjectId||'', status:'scheduled', priority:'mid', createdAt:todayStr(), scheduledDate:'', dueDate:'',
+    completedDate:'', nextAction:'', progress:0, notes:'', attachments:'', isToday:false,
+    waitingFor:'', waitingWhat:'', waitingStart:'', waitingFollowUp:''
+  };
+  openOverlay(`
+    <h2>${id? '編輯工作':'新增工作'}</h2>
+    <div class="field"><label>工作名稱</label><input type="text" id="tk-title" value="${escapeHtml(t.title)}"></div>
+    <div class="field"><label>工作內容</label><textarea id="tk-content">${escapeHtml(t.content||'')}</textarea></div>
+    <div class="row2">
+      <div class="field"><label>業務分類</label><select id="tk-cat"><option value="">未分類</option>${DB.categories.map(c=>`<option ${t.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
+      <div class="field"><label>所屬專案</label><select id="tk-proj"><option value="">無</option>${DB.projects.map(p=>`<option value="${p.id}" ${t.projectId===p.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></div>
+    </div>
+    <div class="row3">
+      <div class="field"><label>狀態</label><select id="tk-status" onchange="document.getElementById('tk-waiting-fs').style.display=this.value==='waiting'?'block':'none'">
+        ${Object.entries(STATUS_META).map(([k,v])=>`<option value="${k}" ${t.status===k?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
+      </select></div>
+      <div class="field"><label>優先程度</label><select id="tk-prio">${Object.entries(PRIO_META).map(([k,v])=>`<option value="${k}" ${t.priority===k?'selected':''}>${v}</option>`).join('')}</select></div>
+      <div class="field"><label>進度 %</label><input type="number" id="tk-progress" min="0" max="100" value="${t.progress||0}"></div>
+    </div>
+    <div class="row3">
+      <div class="field"><label>預計執行日期</label><input type="date" id="tk-sched" value="${t.scheduledDate||''}"></div>
+      <div class="field"><label>截止日期</label><input type="date" id="tk-due" value="${t.dueDate||''}"></div>
+      <div class="field"><label>完成日期</label><input type="date" id="tk-done" value="${t.completedDate||''}"></div>
+    </div>
+    <div class="field"><label>下一步</label><input type="text" id="tk-next" value="${escapeHtml(t.nextAction||'')}"></div>
+    <fieldset id="tk-waiting-fs" style="display:${t.status==='waiting'?'block':'none'}">
+      <legend>⏳ 等待他人</legend>
+      <div class="row2">
+        <div class="field"><label>等待誰</label><input type="text" id="tk-wfor" value="${escapeHtml(t.waitingFor||'')}"></div>
+        <div class="field"><label>開始等待日期</label><input type="date" id="tk-wstart" value="${t.waitingStart||''}"></div>
+      </div>
+      <div class="field"><label>等待什麼</label><input type="text" id="tk-wwhat" value="${escapeHtml(t.waitingWhat||'')}"></div>
+      <div class="field"><label>預計追蹤日期</label><input type="date" id="tk-wfollow" value="${t.waitingFollowUp||''}"></div>
+    </fieldset>
+    <div class="field"><label>備註</label><textarea id="tk-notes">${escapeHtml(t.notes||'')}</textarea></div>
+    <div class="field"><label>附件／連結（每行一個）</label><textarea id="tk-attach">${escapeHtml(t.attachments||'')}</textarea></div>
+    <div class="modal-actions">
+      <div>${id?`<button class="del" onclick="deleteTask('${id}');closeOverlay();">刪除</button>`:''}</div>
+      <div class="right"><button onclick="closeOverlay()">取消</button><button class="save" onclick="saveTaskModal('${id||''}')">儲存</button></div>
+    </div>
+  `);
+}
+async function saveTaskModal(id){
+  const title = document.getElementById('tk-title').value.trim();
+  if(!title){ alert('請輸入工作名稱'); return; }
+  const status = document.getElementById('tk-status').value;
+  const data = {
+    title, content: document.getElementById('tk-content').value,
+    category: document.getElementById('tk-cat').value, projectId: document.getElementById('tk-proj').value,
+    status, priority: document.getElementById('tk-prio').value, progress: Number(document.getElementById('tk-progress').value)||0,
+    scheduledDate: document.getElementById('tk-sched').value, dueDate: document.getElementById('tk-due').value,
+    completedDate: status==='done' ? (document.getElementById('tk-done').value||todayStr()) : document.getElementById('tk-done').value,
+    nextAction: document.getElementById('tk-next').value, notes: document.getElementById('tk-notes').value,
+    attachments: document.getElementById('tk-attach').value,
+    waitingFor: document.getElementById('tk-wfor').value, waitingWhat: document.getElementById('tk-wwhat').value,
+    waitingStart: document.getElementById('tk-wstart').value, waitingFollowUp: document.getElementById('tk-wfollow').value
+  };
+  if(id){
+    const idx = DB.tasks.findIndex(x=>x.id===id);
+    if(idx>-1) DB.tasks[idx] = {...DB.tasks[idx], ...data};
+  } else {
+    DB.tasks.push({ id:uid('t'), createdAt: todayStr(), isToday:false, ...data });
+  }
+  await persist();
+  closeOverlay();
+  renderMain();
+}
+
+function openProjectModal(id){
+  const p = id ? DB.projects.find(x=>x.id===id) : { id:'', name:'', category:'', description:'', startDate:todayStr(), dueDate:'', status:'doing', progressOverride:'', nextAction:'', notes:'' };
+  openOverlay(`
+    <h2>${id?'編輯專案':'新增專案'}</h2>
+    <div class="field"><label>專案名稱</label><input type="text" id="pj-name" value="${escapeHtml(p.name)}"></div>
+    <div class="row2">
+      <div class="field"><label>業務分類</label><select id="pj-cat"><option value="">未分類</option>${DB.categories.map(c=>`<option ${p.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
+      <div class="field"><label>狀態</label><select id="pj-status">
+        <option value="doing" ${p.status==='doing'?'selected':''}>進行中</option>
+        <option value="planning" ${p.status==='planning'?'selected':''}>規劃中</option>
+        <option value="paused" ${p.status==='paused'?'selected':''}>暫停</option>
+        <option value="done" ${p.status==='done'?'selected':''}>已完成</option>
+      </select></div>
+    </div>
+    <div class="field"><label>說明</label><textarea id="pj-desc">${escapeHtml(p.description||'')}</textarea></div>
+    <div class="row2">
+      <div class="field"><label>開始日期</label><input type="date" id="pj-start" value="${p.startDate||''}"></div>
+      <div class="field"><label>截止日期</label><input type="date" id="pj-due" value="${p.dueDate||''}"></div>
+    </div>
+    <div class="field"><label>下一個重要行動</label><input type="text" id="pj-next" value="${escapeHtml(p.nextAction||'')}"></div>
+    <div class="field"><label>手動調整進度 %（留空則依工作完成比例自動計算）</label><input type="number" min="0" max="100" id="pj-progress" value="${p.progressOverride??''}"></div>
+    <div class="field"><label>備註</label><textarea id="pj-notes">${escapeHtml(p.notes||'')}</textarea></div>
+    <div class="modal-actions">
+      <div>${id?`<button class="del" onclick="deleteProject('${id}');closeOverlay();">刪除</button>`:''}</div>
+      <div class="right"><button onclick="closeOverlay()">取消</button><button class="save" onclick="saveProjectModal('${id||''}')">儲存</button></div>
+    </div>
+  `);
+}
+async function saveProjectModal(id){
+  const name = document.getElementById('pj-name').value.trim();
+  if(!name){ alert('請輸入專案名稱'); return; }
+  const progressVal = document.getElementById('pj-progress').value;
+  const data = {
+    name, category: document.getElementById('pj-cat').value, status: document.getElementById('pj-status').value,
+    description: document.getElementById('pj-desc').value, startDate: document.getElementById('pj-start').value,
+    dueDate: document.getElementById('pj-due').value, nextAction: document.getElementById('pj-next').value,
+    progressOverride: progressVal===''? '' : Number(progressVal), notes: document.getElementById('pj-notes').value
+  };
+  if(id){
+    const idx = DB.projects.findIndex(x=>x.id===id);
+    if(idx>-1) DB.projects[idx] = {...DB.projects[idx], ...data};
+  } else {
+    DB.projects.push({ id:uid('p'), ...data });
+  }
+  await persist(); closeOverlay(); renderMain();
+}
+async function deleteProject(id){
+  if(!confirm('確定刪除此專案？（底下的工作不會被刪除，但會取消關聯）')) return;
+  DB.projects = DB.projects.filter(p=>p.id!==id);
+  DB.tasks.forEach(t=>{ if(t.projectId===id) t.projectId=''; });
+  await persist(); renderMain();
+}
+
+function openMeetingModal(id){
+  const m = id ? DB.meetings.find(x=>x.id===id) : { id:'', name:'', date:todayStr(), type:'', attendees:'', discussion:'', decisions:'', followUps:'', category:'', projectId:'' };
+  openOverlay(`
+    <h2>${id?'編輯會議':'新增會議'}</h2>
+    <div class="field"><label>會議名稱</label><input type="text" id="mt-name" value="${escapeHtml(m.name)}"></div>
+    <div class="row2">
+      <div class="field"><label>日期</label><input type="date" id="mt-date" value="${m.date||''}"></div>
+      <div class="field"><label>類型</label><input type="text" id="mt-type" value="${escapeHtml(m.type||'')}" placeholder="例：例行會議 / 主管會議"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>相關業務</label><select id="mt-cat"><option value="">未分類</option>${DB.categories.map(c=>`<option ${m.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
+      <div class="field"><label>相關專案</label><select id="mt-proj"><option value="">無</option>${DB.projects.map(p=>`<option value="${p.id}" ${m.projectId===p.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></div>
+    </div>
+    <div class="field"><label>與會人員</label><input type="text" id="mt-attendees" value="${escapeHtml(m.attendees||'')}"></div>
+    <div class="field"><label>討論事項</label><textarea id="mt-discussion">${escapeHtml(m.discussion||'')}</textarea></div>
+    <div class="field"><label>決議</label><textarea id="mt-decisions">${escapeHtml(m.decisions||'')}</textarea></div>
+    <div class="field"><label>後續工作／主管交辦（每行一項，可一鍵轉為 Task）</label><textarea id="mt-followups">${escapeHtml(m.followUps||'')}</textarea></div>
+    <div class="modal-actions">
+      <div>${id?`<button class="del" onclick="deleteMeeting('${id}');closeOverlay();">刪除</button>`:''}</div>
+      <div class="right"><button onclick="closeOverlay()">取消</button><button class="save" onclick="saveMeetingModal('${id||''}')">儲存</button></div>
+    </div>
+  `);
+}
+async function saveMeetingModal(id){
+  const name = document.getElementById('mt-name').value.trim();
+  if(!name){ alert('請輸入會議名稱'); return; }
+  const data = {
+    name, date: document.getElementById('mt-date').value, type: document.getElementById('mt-type').value,
+    category: document.getElementById('mt-cat').value, projectId: document.getElementById('mt-proj').value,
+    attendees: document.getElementById('mt-attendees').value, discussion: document.getElementById('mt-discussion').value,
+    decisions: document.getElementById('mt-decisions').value, followUps: document.getElementById('mt-followups').value
+  };
+  if(id){ const idx=DB.meetings.findIndex(x=>x.id===id); if(idx>-1) DB.meetings[idx]={...DB.meetings[idx],...data}; }
+  else DB.meetings.push({ id:uid('m'), ...data });
+  await persist(); closeOverlay(); renderMain();
+}
+
+function openResultModal(id){
+  const r = id ? DB.results.find(x=>x.id===id) : { id:'', title:'', date:todayStr(), category:'', projectId:'', purpose:'', content:'', participants:'', summary:'', photos:'', poster:'', ppt:'', signInSheet:'', survey:'', budget:'', docs:'', issues:'', improvements:'', reportText:'' };
+  openOverlay(`
+    <h2>${id?'編輯成果':'新增成果'}</h2>
+    <div class="field"><label>活動／成果名稱</label><input type="text" id="rs-title" value="${escapeHtml(r.title)}"></div>
+    <div class="row2">
+      <div class="field"><label>日期</label><input type="date" id="rs-date" value="${r.date||''}"></div>
+      <div class="field"><label>所屬業務</label><select id="rs-cat"><option value="">未分類</option>${DB.categories.map(c=>`<option ${r.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
+    </div>
+    <div class="field"><label>相關專案</label><select id="rs-proj"><option value="">無</option>${DB.projects.map(p=>`<option value="${p.id}" ${r.projectId===p.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></div>
+    <div class="field"><label>目的</label><input type="text" id="rs-purpose" value="${escapeHtml(r.purpose||'')}"></div>
+    <div class="field"><label>執行內容</label><textarea id="rs-content">${escapeHtml(r.content||'')}</textarea></div>
+    <div class="row2">
+      <div class="field"><label>參與人數</label><input type="text" id="rs-participants" value="${escapeHtml(r.participants||'')}"></div>
+      <div class="field"><label>經費</label><input type="text" id="rs-budget" value="${escapeHtml(r.budget||'')}"></div>
+    </div>
+    <div class="field"><label>成果摘要</label><textarea id="rs-summary">${escapeHtml(r.summary||'')}</textarea></div>
+    <div class="row2">
+      <div class="field"><label>照片連結</label><input type="text" id="rs-photos" value="${escapeHtml(r.photos||'')}"></div>
+      <div class="field"><label>海報連結</label><input type="text" id="rs-poster" value="${escapeHtml(r.poster||'')}"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>簡報連結</label><input type="text" id="rs-ppt" value="${escapeHtml(r.ppt||'')}"></div>
+      <div class="field"><label>簽到表連結</label><input type="text" id="rs-signin" value="${escapeHtml(r.signInSheet||'')}"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>問卷連結</label><input type="text" id="rs-survey" value="${escapeHtml(r.survey||'')}"></div>
+      <div class="field"><label>相關文件連結</label><input type="text" id="rs-docs" value="${escapeHtml(r.docs||'')}"></div>
+    </div>
+    <div class="field"><label>執行問題</label><textarea id="rs-issues">${escapeHtml(r.issues||'')}</textarea></div>
+    <div class="field"><label>下次改善</label><textarea id="rs-improve">${escapeHtml(r.improvements||'')}</textarea></div>
+    <div class="field"><label>成果報告文字（可直接複製使用）</label><textarea id="rs-report">${escapeHtml(r.reportText||'')}</textarea></div>
+    <div class="modal-actions">
+      <div>${id?`<button class="del" onclick="deleteResult('${id}');closeOverlay();">刪除</button>`:''}</div>
+      <div class="right"><button onclick="closeOverlay()">取消</button><button class="save" onclick="saveResultModal('${id||''}')">儲存</button></div>
+    </div>
+  `);
+}
+async function saveResultModal(id){
+  const title = document.getElementById('rs-title').value.trim();
+  if(!title){ alert('請輸入名稱'); return; }
+  const data = {
+    title, date: document.getElementById('rs-date').value, category: document.getElementById('rs-cat').value,
+    projectId: document.getElementById('rs-proj').value, purpose: document.getElementById('rs-purpose').value,
+    content: document.getElementById('rs-content').value, participants: document.getElementById('rs-participants').value,
+    budget: document.getElementById('rs-budget').value, summary: document.getElementById('rs-summary').value,
+    photos: document.getElementById('rs-photos').value, poster: document.getElementById('rs-poster').value,
+    ppt: document.getElementById('rs-ppt').value, signInSheet: document.getElementById('rs-signin').value,
+    survey: document.getElementById('rs-survey').value, docs: document.getElementById('rs-docs').value,
+    issues: document.getElementById('rs-issues').value, improvements: document.getElementById('rs-improve').value,
+    reportText: document.getElementById('rs-report').value
+  };
+  if(id){ const idx=DB.results.findIndex(x=>x.id===id); if(idx>-1) DB.results[idx]={...DB.results[idx],...data}; }
+  else DB.results.push({ id:uid('r'), ...data });
+  await persist(); closeOverlay(); renderMain();
+}
+
+function openEventModal(id){
+  const e = id? DB.events.find(x=>x.id===id) : { id:'', title:'', date:todayStr(), category:'', projectId:'' };
+  openOverlay(`
+    <h2>${id?'編輯 Event':'新增 Event'}</h2>
+    <div class="field"><label>名稱</label><input type="text" id="ev-title" value="${escapeHtml(e.title)}"></div>
+    <div class="row2">
+      <div class="field"><label>日期</label><input type="date" id="ev-date" value="${e.date||todayStr()}"></div>
+      <div class="field"><label>業務分類</label><select id="ev-cat"><option value="">未分類</option>${DB.categories.map(c=>`<option ${e.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
+    </div>
+    <div class="field"><label>相關專案</label><select id="ev-proj"><option value="">無</option>${DB.projects.map(p=>`<option value="${p.id}" ${e.projectId===p.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></div>
+    <div class="modal-actions"><div></div><div class="right"><button onclick="closeOverlay()">取消</button><button class="save" onclick="saveEventModal('${id||''}')">儲存</button></div></div>
+  `);
+}
+async function saveEventModal(id){
+  const title = document.getElementById('ev-title').value.trim();
+  if(!title){ alert('請輸入名稱'); return; }
+  const data = { title, date: document.getElementById('ev-date').value, category: document.getElementById('ev-cat').value, projectId: document.getElementById('ev-proj').value };
+  if(id){ const idx=DB.events.findIndex(x=>x.id===id); if(idx>-1) DB.events[idx]={...DB.events[idx],...data}; }
+  else DB.events.push({ id:uid('e'), ...data });
+  await persist(); closeOverlay(); renderMain();
+}
+
+/* Category manager */
+function openCategoryManager(){
+  openOverlay(`
+    <h2>業務分類設定</h2>
+    <div class="card-list" id="catList">
+      ${DB.categories.map(c=>`
+        <div class="item-card" style="padding:8px 12px;display:flex;justify-content:space-between;align-items:center;">
+          <span>${escapeHtml(c)}</span>
+          <div class="actions-row" style="margin:0;">
+            <button onclick="renameCategory('${c.replace(/'/g,"\\'")}')">重新命名</button>
+            <button class="del" onclick="deleteCategory('${c.replace(/'/g,"\\'")}')">刪除</button>
+          </div>
+        </div>`).join('')}
+    </div>
+    <div class="field" style="margin-top:14px;"><label>新增分類</label><input type="text" id="newCatInput" placeholder="輸入新業務名稱，按 Enter 新增" onkeydown="if(event.key==='Enter')addCategory()"></div>
+    <div class="modal-actions"><div></div><div class="right"><button class="save" onclick="closeOverlay()">完成</button></div></div>
+  `);
+}
+async function addCategory(){
+  const el = document.getElementById('newCatInput');
+  const v = el.value.trim();
+  if(!v || DB.categories.includes(v)) return;
+  DB.categories.push(v);
+  await persist();
+  openCategoryManager();
+}
+async function renameCategory(old){
+  const nv = prompt('重新命名「'+old+'」為：', old);
+  if(!nv || nv===old) return;
+  DB.categories = DB.categories.map(c=>c===old?nv:c);
+  DB.tasks.forEach(t=>{ if(t.category===old) t.category=nv; });
+  DB.projects.forEach(p=>{ if(p.category===old) p.category=nv; });
+  DB.meetings.forEach(m=>{ if(m.category===old) m.category=nv; });
+  DB.results.forEach(r=>{ if(r.category===old) r.category=nv; });
+  DB.events.forEach(e=>{ if(e.category===old) e.category=nv; });
+  await persist();
+  openCategoryManager();
+  renderMain();
+}
+async function deleteCategory(c){
+  const inUse = DB.tasks.some(t=>t.category===c) || DB.projects.some(p=>p.category===c);
+  if(inUse && !confirm('這個分類目前有工作或專案在使用，仍要刪除嗎？（不會刪除工作，只會清空其分類）')) return;
+  DB.categories = DB.categories.filter(x=>x!==c);
+  DB.tasks.forEach(t=>{ if(t.category===c) t.category=''; });
+  DB.projects.forEach(p=>{ if(p.category===c) p.category=''; });
+  await persist();
+  openCategoryManager();
+  renderMain();
+}
+
+/* ============================================================
+   Export / Backup
+============================================================ */
+function openExportMenu(){
+  openOverlay(`
+    <h2>匯出／備份</h2>
+    <div class="empty-note" style="margin-bottom:12px;">建議每隔一段時間備份一次，未來即使更換系統也不會遺失紀錄。</div>
+    <div class="card-list">
+      <button class="save" style="width:100%;padding:10px;" onclick="exportJSON()">📦 匯出完整資料（JSON）</button>
+      <button style="width:100%;padding:10px;border:1px solid var(--ink-soft);background:#fff;border-radius:4px;" onclick="exportCSV('tasks')">📋 匯出 Tasks（CSV）</button>
+      <button style="width:100%;padding:10px;border:1px solid var(--ink-soft);background:#fff;border-radius:4px;" onclick="exportCSV('projects')">📋 匯出 Projects（CSV）</button>
+      <button style="width:100%;padding:10px;border:1px solid var(--ink-soft);background:#fff;border-radius:4px;" onclick="exportCSV('meetings')">📋 匯出 Meetings（CSV）</button>
+      <button style="width:100%;padding:10px;border:1px solid var(--ink-soft);background:#fff;border-radius:4px;" onclick="exportCSV('results')">📋 匯出 Results（CSV）</button>
+      <button style="width:100%;padding:10px;border:1px solid var(--rust);color:var(--rust);background:#fff;border-radius:4px;" onclick="if(confirm('確定要刪除所有 DEMO 測試資料嗎？'))clearDemoData()">🗑 刪除所有 Demo 測試資料</button>
+    </div>
+    <div class="modal-actions"><div></div><div class="right"><button onclick="closeOverlay()">關閉</button></div></div>
+  `);
+}
+function downloadBlob(content, filename, type){
+  const blob = new Blob([content], {type});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function exportJSON(){
+  downloadBlob(JSON.stringify(DB, null, 2), `library-system-backup-${todayStr()}.json`, 'application/json');
+  toast('已匯出 JSON 備份');
+}
+function exportCSV(kind){
+  const rows = DB[kind]||[];
+  if(!rows.length){ toast('沒有資料可以匯出'); return; }
+  const keys = Array.from(rows.reduce((s,r)=>{ Object.keys(r).forEach(k=>s.add(k)); return s;}, new Set()));
+  const esc = v => `"${String(v??'').replace(/"/g,'""')}"`;
+  const csv = [keys.join(','), ...rows.map(r=>keys.map(k=>esc(r[k])).join(','))].join('\n');
+  downloadBlob('\uFEFF'+csv, `${kind}-${todayStr()}.csv`, 'text/csv;charset=utf-8;');
+  toast('已匯出 CSV');
+}
+async function clearDemoData(){
+  DB.tasks = DB.tasks.filter(t=>!t.isDemo);
+  DB.projects = DB.projects.filter(p=>!p.isDemo);
+  DB.meetings = DB.meetings.filter(m=>!m.isDemo);
+  DB.results = DB.results.filter(r=>!r.isDemo);
+  DB.events = DB.events.filter(e=>!e.isDemo);
+  await persist();
+  closeOverlay();
+  renderMain();
+  toast('Demo 測試資料已清除');
+}
+
+/* ============================================================
+   Init
+============================================================ */
+document.getElementById('overlay').addEventListener('click', (e)=>{ if(e.target.id==='overlay') closeOverlay(); });
+(async function init(){
+  renderNav();
+  await loadDB();
+  renderMain();
+})();
+</script>
+</body>
+</html>
