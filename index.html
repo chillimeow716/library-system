@@ -635,6 +635,7 @@ async function deleteTask(id){
 /* ============================================================
    Today
 ============================================================ */
+let todayShowAllUpcoming = false;
 function viewToday(){
   const t = todayStr();
   const tasks = activeTasks();
@@ -661,8 +662,9 @@ function viewToday(){
   nearConflicts.forEach(({e,warns})=>warns.forEach(w=>attentionLines.push({e, cls:w.level==='high'?'urgent':'warn', txt:`「${e.title}」${w.text}`})));
 
   // 接下來：即將發生的活動 + 準備建議
-  const events = upcomingMyEvents(45).slice(0,5);
-  const prepIds = new Set(prepSuggestions(45).map(e=>e.id));
+  const allUpcoming = upcomingMyEvents(90);
+  const events = todayShowAllUpcoming ? allUpcoming : allUpcoming.slice(0,5);
+  const prepIds = new Set(prepSuggestions(90).map(e=>e.id));
 
   const count = todayList.length;
   const eventCount = todayEvents.length;
@@ -702,7 +704,7 @@ function viewToday(){
       </div>`).join('')}
   </div>` : ''}
 
-  <div class="section-label">接下來需要準備 <button class="link-btn" style="margin-left:8px;" onclick="switchTab('calendar')">查看全部</button></div>
+  <div class="section-label">接下來需要準備 ${!todayShowAllUpcoming && allUpcoming.length>5 ? `<button class="link-btn" style="margin-left:8px;" onclick="todayShowAllUpcoming=true;renderMain()">查看全部（共 ${allUpcoming.length} 筆）</button>` : (todayShowAllUpcoming ? `<button class="link-btn" style="margin-left:8px;" onclick="todayShowAllUpcoming=false;renderMain()">收合</button>` : '')}</div>
   <div class="list-plain">
     ${events.length ? events.map(e=>{
       const dd = daysDiff(eventDate(e));
@@ -719,7 +721,7 @@ function viewToday(){
         </div>
         ${isPrep ? `<div class="up-action"><button onclick="openPrepModal('${e.id}')">開始準備</button></div>` : ''}
       </div>`;
-    }).join('') : '<div class="empty-note">未來 45 天內沒有排定的活動</div>'}
+    }).join('') : '<div class="empty-note">未來 90 天內沒有排定的活動</div>'}
   </div>
   `;
 }
