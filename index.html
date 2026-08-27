@@ -305,6 +305,8 @@ const IMPACT_LABELS = { high:'高影響', medium:'中影響', low:'低影響' };
 let DB = null;
 let currentTab = 'today';
 let saveTimer = null;
+let lastKnownRaw = null; // 用來比對遠端資料是否有變動（例如來自 LINE 機器人的更新）
+let pollTimer = null;
 
 function uid(p){ return (p||'id')+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
@@ -346,8 +348,35 @@ async function loadDB(){
     await persist();
     return;
   }
+  lastKnownRaw = raw;
   migrateDB();
 }
+
+/* 定期檢查遠端資料是否有更新（例如來自 LINE 機器人的新增/完成），
+   有更新才重新渲染，且避開使用者正在編輯的當下，以免打斷操作 */
+function startPolling(){
+  if(pollTimer) return;
+  pollTimer = setInterval(async ()=>{
+    const modalOpen = document.getElementById('modalOverlay').classList.contains('show');
+    const drawerOpen = document.getElementById('drawer').classList.contains('show');
+    if(modalOpen || drawerOpen) return; // 使用者正在操作中，這次先跳過
+    try{
+      const res = await window.storage.get(STORAGE_KEY, false);
+      const raw = res ? res.value : null;
+      if(raw && raw !== lastKnownRaw){
+        lastKnownRaw = raw;
+        DB = JSON.parse(raw);
+        migrateDB();
+        renderNav();
+        renderMain();
+        toast('資料已更新');
+      }
+    }catch(e){
+      console.error('poll error', e); // 靜默失敗，不打擾使用者，下次再試
+    }
+  }, 25000);
+}
+function stopPolling(){ clearInterval(pollTimer); pollTimer = null; }
 
 function migrateDB(){
   ['tasks','projects','meetings','results','events','reviews','categories'].forEach(k=>{ if(!DB[k]) DB[k]=[]; });
@@ -397,8 +426,10 @@ async function persist(){
   return new Promise(resolve=>{
     saveTimer = setTimeout(async ()=>{
       try{
-        const r = await window.storage.set(STORAGE_KEY, JSON.stringify(DB), false);
+        const serialized = JSON.stringify(DB);
+        const r = await window.storage.set(STORAGE_KEY, serialized, false);
         if(!r) toast('⚠ 儲存失敗，請檢查網路連線');
+        else lastKnownRaw = serialized; // 避免下次輪詢把自己剛存的資料誤判成「有新更新」
       }
       catch(e){
         console.error('storage error', e);
@@ -1778,6 +1809,7 @@ async function bootApp(){
   if(DB === null){ renderConnectionErrorScreen(); return; }
   renderNav();
   renderMain();
+  startPolling();
 }
 
 /* ============================================================
