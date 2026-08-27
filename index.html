@@ -114,8 +114,9 @@ a{ color:inherit; }
 .todo-card:hover{ border-color:var(--accent); }
 .todo-card.drag-over{ border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft) inset; }
 .todo-card-top{ display:flex; justify-content:space-between; align-items:center; }
-.todo-drag-handle{ color:var(--ink-faint); font-size:13px; cursor:grab; letter-spacing:1px; }
-.todo-drag-handle:active{ cursor:grabbing; }
+.todo-move-btns{ display:flex; gap:2px; }
+.todo-move-btns button{ border:1px solid var(--line); background:var(--bg); color:var(--ink-soft); border-radius:5px; font-size:10px; padding:2px 6px; line-height:1.4; }
+.todo-move-btns button:hover{ background:var(--line-faint); color:var(--ink); }
 .todo-card-title{ font-size:13.5px; font-weight:600; line-height:1.4; }
 .todo-card-title.done{ text-decoration:line-through; color:var(--ink-faint); }
 .todo-card-sub{ font-size:11px; color:var(--ink-faint); }
@@ -688,7 +689,10 @@ function todoCardHtml(t){
     onclick="openTaskDrawer('${t.id}')">
     <div class="todo-card-top">
       <div class="task-check ${t.status==='done'?'checked':''}" onclick="event.stopPropagation();quickComplete('${t.id}')">${t.status==='done'?'✓':''}</div>
-      <div class="todo-drag-handle" title="拖曳排序">⠿</div>
+      <div class="todo-move-btns">
+        <button title="往上移" onclick="event.stopPropagation();moveTodayCard('${t.id}',-1)">▲</button>
+        <button title="往下移" onclick="event.stopPropagation();moveTodayCard('${t.id}',1)">▼</button>
+      </div>
     </div>
     <div class="todo-card-title ${t.status==='done'?'done':''}">${escapeHtml(t.title)}</div>
     ${cName?`<div class="todo-card-sub">${escapeHtml(cName)}</div>`:''}
@@ -696,19 +700,36 @@ function todoCardHtml(t){
   </div>`;
 }
 let todayDragId = null;
-function onTodayDragStart(e, id){ todayDragId = id; try{ e.dataTransfer.effectAllowed='move'; }catch(_){} }
+function onTodayDragStart(e, id){
+  todayDragId = id;
+  try{ e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', id); }catch(_){}
+}
 async function onTodayDrop(e, targetId){
   e.preventDefault();
   if(e.currentTarget) e.currentTarget.classList.remove('drag-over');
   if(!todayDragId || todayDragId===targetId) return;
+  await reorderTodayList(todayDragId, targetId);
+  todayDragId = null;
+}
+async function moveTodayCard(id, direction){
   const order = (window.__todayOrderIds || []).slice();
-  const from = order.indexOf(todayDragId);
+  const idx = order.indexOf(id);
+  if(idx===-1) return;
+  const swapIdx = idx + direction;
+  if(swapIdx<0 || swapIdx>=order.length) return;
+  const tmp = order[idx]; order[idx]=order[swapIdx]; order[swapIdx]=tmp;
+  DB.todayOrder = order;
+  await persist();
+  renderMain();
+}
+async function reorderTodayList(dragId, targetId){
+  const order = (window.__todayOrderIds || []).slice();
+  const from = order.indexOf(dragId);
   const to = order.indexOf(targetId);
   if(from===-1 || to===-1) return;
   order.splice(from,1);
-  order.splice(to,0,todayDragId);
+  order.splice(to,0,dragId);
   DB.todayOrder = order;
-  todayDragId = null;
   await persist();
   renderMain();
 }
