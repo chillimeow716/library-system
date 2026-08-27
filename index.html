@@ -539,6 +539,29 @@ function prepSuggestions(withinDays=45){
     return dd!==null && dd>=0 && dd<=withinDays;
   }).sort((a,b)=> daysDiff(eventDate(a)) - daysDiff(eventDate(b)));
 }
+/* Today 頁「接下來需要準備」用：合併「活動（Event）」跟「有截止日的工作（Task）」，
+   因為 LINE 機器人新增的東西大多是 Task 不是 Event，只看 Event 會漏掉大部分內容 */
+function upcomingActivitiesForToday(withinDays){
+  const t = todayStr();
+  const items = [];
+  DB.events.forEach(e=>{
+    const dd = daysDiff(eventDate(e));
+    if(dd!==null && dd>=0 && dd<=withinDays){
+      items.push({ kind:'event', id:e.id, title:e.title, date:eventDate(e), templateId:e.templateId, hasTasks:eventHasTasks(e.id) });
+    }
+  });
+  activeTasks().forEach(x=>{
+    if(x.status==='done') return;
+    if(!x.dueDate) return;
+    const dd = daysDiff(x.dueDate);
+    // dd>0：今天到期的已經在「待辦清單」顯示過了，這裡不重複列
+    if(dd!==null && dd>0 && dd<=withinDays){
+      items.push({ kind:'task', id:x.id, title:x.title, date:x.dueDate });
+    }
+  });
+  items.sort((a,b)=> daysDiff(a.date) - daysDiff(b.date));
+  return items;
+}
 
 /* ============================================================
    Navigation
@@ -653,6 +676,7 @@ function viewToday(){
     return daysDiff(last)!==null && daysDiff(last) <= -14;
   });
   const nearConflicts = upcomingMyEvents(14).map(e=>({e, warns:checkConflicts(e.startDate||e.date, e.endDate)})).filter(x=>x.warns.length);
+  const tomorrowEvents = DB.events.filter(e=>daysDiff(eventDate(e))===1);
 
   const attentionLines = [];
   overdue.forEach(x=>attentionLines.push({t:x, cls:'urgent', txt:`${x.title} 已逾期`}));
@@ -660,10 +684,15 @@ function viewToday(){
   followToday.forEach(x=>attentionLines.push({t:x, cls:'warn', txt:`${x.waitingFor||'對方'} 的「${x.title}」今天需要追蹤`}));
   staleProjects.forEach(p=>attentionLines.push({p, cls:'warn', txt:`專案「${p.name}」超過 14 天沒有更新`}));
   nearConflicts.forEach(({e,warns})=>warns.forEach(w=>attentionLines.push({e, cls:w.level==='high'?'urgent':'warn', txt:`「${e.title}」${w.text}`})));
+  tomorrowEvents.forEach(e=>{
+    const relTasks = DB.tasks.filter(x=>x.eventId===e.id && x.status!=='done' && x.status!=='archived');
+    const suffix = relTasks.length ? `，還有 ${relTasks.length} 項準備工作未完成` : '';
+    attentionLines.push({e, cls:'warn', txt:`明天有「${e.title}」${suffix}`});
+  });
 
-  // 接下來：即將發生的活動 + 準備建議
-  const allUpcoming = upcomingMyEvents(90);
-  const events = todayShowAllUpcoming ? allUpcoming : allUpcoming.slice(0,5);
+  // 接下來：合併「活動」跟「有截止日的工作」，並附上準備建議
+  const allUpcoming = upcomingActivitiesForToday(90);
+  const upcomingShown = todayShowAllUpcoming ? allUpcoming : allUpcoming.slice(0,5);
   const prepIds = new Set(prepSuggestions(90).map(e=>e.id));
 
   const count = todayList.length;
@@ -706,22 +735,24 @@ function viewToday(){
 
   <div class="section-label">接下來需要準備 ${!todayShowAllUpcoming && allUpcoming.length>5 ? `<button class="link-btn" style="margin-left:8px;" onclick="todayShowAllUpcoming=true;renderMain()">查看全部（共 ${allUpcoming.length} 筆）</button>` : (todayShowAllUpcoming ? `<button class="link-btn" style="margin-left:8px;" onclick="todayShowAllUpcoming=false;renderMain()">收合</button>` : '')}</div>
   <div class="list-plain">
-    ${events.length ? events.map(e=>{
-      const dd = daysDiff(eventDate(e));
-      const isPrep = prepIds.has(e.id);
-      const tpl = DB.prepTemplates.find(x=>x.id===e.templateId);
-      let subText = `${fmtDate(eventDate(e))} · 還有 ${dd} 天`;
+    ${upcomingShown.length ? upcomingShown.map(item=>{
+      const dd = daysDiff(item.date);
+      const isPrep = item.kind==='event' && prepIds.has(item.id);
+      const tpl = item.kind==='event' ? DB.prepTemplates.find(x=>x.id===item.templateId) : null;
+      let subText = `${fmtDate(item.date)} · 還有 ${dd} 天`;
+      if(item.kind==='task') subText += ' · 工作';
       if(isPrep && tpl) subText += ` · 依「${escapeHtml(tpl.name)}」範本建議這段時間開始準備`;
-      else if(e.templateId && eventHasTasks(e.id)) subText += ` · 準備工作已建立`;
+      else if(item.kind==='event' && item.templateId && item.hasTasks) subText += ` · 準備工作已建立`;
+      const clickFn = item.kind==='event' ? `openEventModal('${item.id}')` : `openTaskDrawer('${item.id}')`;
       return `
       <div class="up-row">
-        <div class="up-main" onclick="openEventModal('${e.id}')">
-          <div class="up-title">${escapeHtml(e.title)}</div>
+        <div class="up-main" onclick="${clickFn}">
+          <div class="up-title">${escapeHtml(item.title)}</div>
           <div class="up-sub ${isPrep?'prep':''}">${subText}</div>
         </div>
-        ${isPrep ? `<div class="up-action"><button onclick="openPrepModal('${e.id}')">開始準備</button></div>` : ''}
+        ${isPrep ? `<div class="up-action"><button onclick="openPrepModal('${item.id}')">開始準備</button></div>` : ''}
       </div>`;
-    }).join('') : '<div class="empty-note">未來 90 天內沒有排定的活動</div>'}
+    }).join('') : '<div class="empty-note">未來 90 天內沒有排定的活動或工作</div>'}
   </div>
   `;
 }
