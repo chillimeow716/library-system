@@ -641,6 +641,7 @@ function viewToday(){
   const todayList = tasks.filter(x=> x.status!=='done' && (
     x.scheduledDate===t || x.dueDate===t || x.isToday || (x.status==='waiting' && x.waitingFollowUp===t)
   ));
+  const todayEvents = DB.events.filter(e=>{ const s=eventDate(e); const en=e.endDate||s; return t>=s && t<=en; });
   const overdue = tasks.filter(isOverdue);
   const dueSoon = tasks.filter(x=>isDueSoon(x,2) && !isOverdue(x) && x.dueDate!==t);
   const followToday = tasks.filter(x=>x.status==='waiting' && x.waitingFollowUp===t);
@@ -664,18 +665,32 @@ function viewToday(){
   const prepIds = new Set(prepSuggestions(45).map(e=>e.id));
 
   const count = todayList.length;
+  const eventCount = todayEvents.length;
   const followCount = followToday.length;
-  let summary = count===0 ? '今天沒有排定的工作，找點想推進的事情吧。' : `今天有 ${count} 件事情值得處理`;
-  if(count>0 && followCount>0) summary += `，${followCount} 件事情需要追蹤。`;
-  else if(count>0) summary += '。';
+  let summaryParts = [];
+  if(count>0) summaryParts.push(`${count} 件待辦`);
+  if(eventCount>0) summaryParts.push(`${eventCount} 個活動／研習／會議`);
+  if(followCount>0) summaryParts.push(`${followCount} 件事情需要追蹤`);
+  const summary = summaryParts.length ? `今天有 ${summaryParts.join('、')}。` : '今天沒有排定的事情，找點想推進的事情吧。';
 
   return `
   <div class="page-title">${new Date().toLocaleDateString('zh-TW',{month:'long',day:'numeric',weekday:'short'})}</div>
   <div class="page-sub">${summary}</div>
 
-  <div class="section-label">今天</div>
+  <div class="section-label">待辦清單</div>
   <div class="list-plain">
     ${todayList.length? todayList.sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999')).map(x=>taskRowHtml(x)).join('') : '<div class="empty-note">沒有安排 — 到 Inbox 或 Tasks 找點事情來做，或享受空檔。</div>'}
+  </div>
+
+  <div class="section-label">今日活動／研習／會議</div>
+  <div class="list-plain">
+    ${todayEvents.length? todayEvents.map(e=>`
+      <div class="task-row" onclick="openEventModal('${e.id}')">
+        <div class="task-main">
+          <div class="task-title">${escapeHtml(e.title)}</div>
+          ${catName(e.categoryId)?`<div class="task-sub">${escapeHtml(catName(e.categoryId))}</div>`:''}
+        </div>
+      </div>`).join('') : '<div class="empty-note">今天沒有活動、研習或會議</div>'}
   </div>
 
   ${attentionLines.length ? `
