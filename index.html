@@ -97,6 +97,31 @@ a{ color:inherit; }
 .up-action{ flex-shrink:0; }
 .up-action button{ border:1px solid var(--accent); color:var(--accent-deep); background:transparent; border-radius:12px; padding:4px 11px; font-size:11.5px; }
 .up-action button:hover{ background:var(--accent-soft); }
+.up-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+@media(max-width:760px){ .up-grid{ grid-template-columns:repeat(2,1fr); } }
+@media(max-width:520px){ .up-grid{ grid-template-columns:1fr; } }
+.up-card{ background:var(--surface); border:1px solid var(--line-faint); border-radius:8px; padding:12px 13px; cursor:pointer; display:flex; flex-direction:column; gap:6px; min-height:78px; }
+.up-card:hover{ border-color:var(--accent); }
+.up-card .up-title{ font-size:13.5px; font-weight:600; line-height:1.4; }
+.up-card .up-sub{ font-size:11px; margin-top:0; }
+.up-card .up-action{ margin-top:auto; padding-top:4px; }
+.up-card .up-action button{ width:100%; }
+
+.todo-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+@media(max-width:760px){ .todo-grid{ grid-template-columns:repeat(2,1fr); } }
+@media(max-width:520px){ .todo-grid{ grid-template-columns:1fr; } }
+.todo-card{ background:var(--surface); border:1px solid var(--line-faint); border-radius:8px; padding:11px 12px; cursor:pointer; display:flex; flex-direction:column; gap:5px; min-height:86px; transition:border-color .12s, box-shadow .12s; }
+.todo-card:hover{ border-color:var(--accent); }
+.todo-card.drag-over{ border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft) inset; }
+.todo-card-top{ display:flex; justify-content:space-between; align-items:center; }
+.todo-drag-handle{ color:var(--ink-faint); font-size:13px; cursor:grab; letter-spacing:1px; }
+.todo-drag-handle:active{ cursor:grabbing; }
+.todo-card-title{ font-size:13.5px; font-weight:600; line-height:1.4; }
+.todo-card-title.done{ text-decoration:line-through; color:var(--ink-faint); }
+.todo-card-sub{ font-size:11px; color:var(--ink-faint); }
+.todo-card-meta{ font-size:11px; color:var(--ink-faint); margin-top:auto; padding-top:4px; }
+.todo-card-meta.overdue{ color:var(--red); }
+.todo-card-meta.soon{ color:var(--amber); }
 
 .proj-row{ padding:14px 4px; border-bottom:1px solid var(--line-faint); cursor:pointer; }
 .proj-row:hover{ background:#f8f5ef; }
@@ -382,6 +407,7 @@ function migrateDB(){
   ['tasks','projects','meetings','results','events','reviews','categories'].forEach(k=>{ if(!DB[k]) DB[k]=[]; });
   if(!DB.schoolEvents) DB.schoolEvents = [];
   if(!DB.prepTemplates) DB.prepTemplates = [];
+  if(!DB.todayOrder) DB.todayOrder = []; // 待辦清單手動排序記錄的工作 id 順序
 
   // 1) categories: string[] -> {id,name,archived,order}[]
   if(DB.categories.length && typeof DB.categories[0] === 'string'){
@@ -631,6 +657,62 @@ function taskRowHtml(t, opts={}){
     </div>
   </div>`;
 }
+
+/* 待辦清單專用：可拖曳排序的卡片樣式 */
+function sortTodayList(list){
+  const order = DB.todayOrder || [];
+  const remaining = list.slice();
+  const inOrder = [];
+  order.forEach(id=>{
+    const idx = remaining.findIndex(t=>t.id===id);
+    if(idx!==-1){ inOrder.push(remaining[idx]); remaining.splice(idx,1); }
+  });
+  remaining.sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
+  return inOrder.concat(remaining);
+}
+function todoCardHtml(t){
+  const over = isOverdue(t);
+  const soon = !over && isDueSoon(t);
+  let metaText = '';
+  if(t.status==='waiting') metaText = '等待 · ' + (t.waitingFor||'');
+  else if(t.dueDate) metaText = (over?'已逾期 ':'') + fmtDate(t.dueDate);
+  else if(t.scheduledDate) metaText = fmtDate(t.scheduledDate);
+  const metaCls = over ? 'overdue' : (soon ? 'soon' : '');
+  const cName = catName(t.categoryId);
+  return `
+  <div class="todo-card" draggable="true"
+    ondragstart="onTodayDragStart(event,'${t.id}')"
+    ondragover="event.preventDefault();this.classList.add('drag-over')"
+    ondragleave="this.classList.remove('drag-over')"
+    ondrop="onTodayDrop(event,'${t.id}')"
+    onclick="openTaskDrawer('${t.id}')">
+    <div class="todo-card-top">
+      <div class="task-check ${t.status==='done'?'checked':''}" onclick="event.stopPropagation();quickComplete('${t.id}')">${t.status==='done'?'✓':''}</div>
+      <div class="todo-drag-handle" title="拖曳排序">⠿</div>
+    </div>
+    <div class="todo-card-title ${t.status==='done'?'done':''}">${escapeHtml(t.title)}</div>
+    ${cName?`<div class="todo-card-sub">${escapeHtml(cName)}</div>`:''}
+    ${metaText? `<div class="todo-card-meta ${metaCls}">${metaText}</div>`:''}
+  </div>`;
+}
+let todayDragId = null;
+function onTodayDragStart(e, id){ todayDragId = id; try{ e.dataTransfer.effectAllowed='move'; }catch(_){} }
+async function onTodayDrop(e, targetId){
+  e.preventDefault();
+  if(e.currentTarget) e.currentTarget.classList.remove('drag-over');
+  if(!todayDragId || todayDragId===targetId) return;
+  const order = (window.__todayOrderIds || []).slice();
+  const from = order.indexOf(todayDragId);
+  const to = order.indexOf(targetId);
+  if(from===-1 || to===-1) return;
+  order.splice(from,1);
+  order.splice(to,0,todayDragId);
+  DB.todayOrder = order;
+  todayDragId = null;
+  await persist();
+  renderMain();
+}
+
 async function quickComplete(id){
   const t = DB.tasks.find(x=>x.id===id); if(!t) return;
   t.status = t.status==='done' ? 'scheduled' : 'done';
@@ -662,9 +744,15 @@ let todayShowAllUpcoming = false;
 function viewToday(){
   const t = todayStr();
   const tasks = activeTasks();
+  const weekEnd = addDaysToDate(t, 6); // 待辦清單顯示範圍：今天起接下來 7 天（含逾期，因為逾期的也還是要處理）
   const todayList = tasks.filter(x=> x.status!=='done' && (
-    x.scheduledDate===t || x.dueDate===t || x.isToday || (x.status==='waiting' && x.waitingFollowUp===t)
+    (x.dueDate && x.dueDate<=weekEnd) ||
+    (x.scheduledDate && x.scheduledDate>=t && x.scheduledDate<=weekEnd) ||
+    x.isToday ||
+    (x.status==='waiting' && x.waitingFollowUp && x.waitingFollowUp<=weekEnd)
   ));
+  const todayListSorted = sortTodayList(todayList);
+  window.__todayOrderIds = todayListSorted.map(x=>x.id); // 給拖曳排序用，記住目前顯示順序
   const todayEvents = DB.events.filter(e=>{ const s=eventDate(e); const en=e.endDate||s; return t>=s && t<=en; });
   const overdue = tasks.filter(isOverdue);
   const dueSoon = tasks.filter(x=>isDueSoon(x,2) && !isOverdue(x) && x.dueDate!==t);
@@ -699,18 +787,18 @@ function viewToday(){
   const eventCount = todayEvents.length;
   const followCount = followToday.length;
   let summaryParts = [];
-  if(count>0) summaryParts.push(`${count} 件待辦`);
+  if(count>0) summaryParts.push(`${count} 件待辦（接下來 7 天）`);
   if(eventCount>0) summaryParts.push(`${eventCount} 個活動／研習／會議`);
   if(followCount>0) summaryParts.push(`${followCount} 件事情需要追蹤`);
-  const summary = summaryParts.length ? `今天有 ${summaryParts.join('、')}。` : '今天沒有排定的事情，找點想推進的事情吧。';
+  const summary = summaryParts.length ? `今天有 ${summaryParts.join('、')}。` : '接下來 7 天沒有排定的事情，找點想推進的事情吧。';
 
   return `
   <div class="page-title">${new Date().toLocaleDateString('zh-TW',{month:'long',day:'numeric',weekday:'short'})}</div>
   <div class="page-sub">${summary}</div>
 
-  <div class="section-label">待辦清單</div>
-  <div class="list-plain">
-    ${todayList.length? todayList.sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999')).map(x=>taskRowHtml(x)).join('') : '<div class="empty-note">沒有安排 — 到 Inbox 或 Tasks 找點事情來做，或享受空檔。</div>'}
+  <div class="section-label">待辦清單 <span style="font-weight:400;font-size:11px;color:var(--ink-faint);margin-left:6px;">拖曳卡片可以自由調整順序</span></div>
+  <div class="todo-grid">
+    ${todayListSorted.length? todayListSorted.map(x=>todoCardHtml(x)).join('') : '<div class="empty-note">沒有安排 — 到 Inbox 或 Tasks 找點事情來做，或享受空檔。</div>'}
   </div>
 
   <div class="section-label">今日活動／研習／會議</div>
@@ -734,23 +822,21 @@ function viewToday(){
   </div>` : ''}
 
   <div class="section-label">接下來需要準備 ${!todayShowAllUpcoming && allUpcoming.length>5 ? `<button class="link-btn" style="margin-left:8px;" onclick="todayShowAllUpcoming=true;renderMain()">查看全部（共 ${allUpcoming.length} 筆）</button>` : (todayShowAllUpcoming ? `<button class="link-btn" style="margin-left:8px;" onclick="todayShowAllUpcoming=false;renderMain()">收合</button>` : '')}</div>
-  <div class="list-plain">
+  <div class="up-grid">
     ${upcomingShown.length ? upcomingShown.map(item=>{
       const dd = daysDiff(item.date);
       const isPrep = item.kind==='event' && prepIds.has(item.id);
       const tpl = item.kind==='event' ? DB.prepTemplates.find(x=>x.id===item.templateId) : null;
       let subText = `${fmtDate(item.date)} · 還有 ${dd} 天`;
       if(item.kind==='task') subText += ' · 工作';
-      if(isPrep && tpl) subText += ` · 依「${escapeHtml(tpl.name)}」範本建議這段時間開始準備`;
+      if(isPrep && tpl) subText += ` · 依「${escapeHtml(tpl.name)}」範本建議開始準備`;
       else if(item.kind==='event' && item.templateId && item.hasTasks) subText += ` · 準備工作已建立`;
       const clickFn = item.kind==='event' ? `openEventModal('${item.id}')` : `openTaskDrawer('${item.id}')`;
       return `
-      <div class="up-row">
-        <div class="up-main" onclick="${clickFn}">
-          <div class="up-title">${escapeHtml(item.title)}</div>
-          <div class="up-sub ${isPrep?'prep':''}">${subText}</div>
-        </div>
-        ${isPrep ? `<div class="up-action"><button onclick="openPrepModal('${item.id}')">開始準備</button></div>` : ''}
+      <div class="up-card" onclick="${clickFn}">
+        <div class="up-title">${escapeHtml(item.title)}</div>
+        <div class="up-sub ${isPrep?'prep':''}">${subText}</div>
+        ${isPrep ? `<div class="up-action"><button onclick="event.stopPropagation();openPrepModal('${item.id}')">開始準備</button></div>` : ''}
       </div>`;
     }).join('') : '<div class="empty-note">未來 90 天內沒有排定的活動或工作</div>'}
   </div>
