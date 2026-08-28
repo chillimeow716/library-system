@@ -108,13 +108,14 @@ a{ color:inherit; }
 .up-card .up-action button{ width:100%; }
 
 .todo-list{ display:flex; flex-direction:column; }
-.todo-list-row{ display:flex; align-items:center; gap:10px; padding:9px 4px; border-bottom:1px solid var(--line-faint); cursor:pointer; }
+.todo-list-row{ display:flex; align-items:center; gap:16px; padding:9px 4px; border-bottom:1px solid var(--line-faint); cursor:pointer; }
 .todo-list-row:hover{ background:#f8f5ef; }
 .todo-list-row.readonly{ cursor:pointer; }
 .todo-row-main{ flex:1; min-width:0; }
 .todo-row-title{ font-size:13.5px; font-weight:600; }
 .todo-row-title.done{ text-decoration:line-through; color:var(--ink-faint); font-weight:400; }
-.todo-row-sub{ font-size:11px; color:var(--ink-faint); margin-top:1px; display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.todo-row-sub{ font-size:11px; color:var(--ink-faint); margin-top:1px; }
+.todo-row-tags{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; flex-shrink:0; margin-left:auto; padding:0 12px; }
 .todo-row-meta{ font-size:11px; color:var(--ink-faint); white-space:nowrap; flex-shrink:0; }
 .todo-row-meta.overdue{ color:var(--red); }
 .todo-row-meta.soon{ color:var(--amber); }
@@ -751,16 +752,16 @@ function todoCardHtml(t, opts={}){
   const metaCls = over ? 'overdue' : (soon ? 'soon' : '');
   const cName = catName(t.categoryId);
   const tags = t.tags || [];
-  const tagsHtml = tags.length ? tags.map(tg=>`<span class="todo-tag tag-${tagClass(tg)}">${escapeHtml(tg)}</span>`).join('') : '';
-  const metaLine = [cName, tagsHtml].filter(Boolean).join(' ');
+  const tagsHtml = tags.length ? `<div class="todo-row-tags">${tags.map(tg=>`<span class="todo-tag tag-${tagClass(tg)}">${escapeHtml(tg)}</span>`).join('')}</div>` : '';
 
   if(opts.readonly){
     return `
     <div class="todo-list-row readonly" onclick="switchTab('tasks')">
       <div class="todo-row-main">
         <div class="todo-row-title ${t.status==='done'?'done':''}">${escapeHtml(t.title)}</div>
-        ${metaLine?`<div class="todo-row-sub">${metaLine}</div>`:''}
+        ${cName?`<div class="todo-row-sub">${escapeHtml(cName)}</div>`:''}
       </div>
+      ${tagsHtml}
       ${metaText? `<div class="todo-row-meta ${metaCls}">${metaText}</div>`:''}
     </div>`;
   }
@@ -769,8 +770,9 @@ function todoCardHtml(t, opts={}){
     <div class="task-check ${t.status==='done'?'checked':''}" onclick="event.stopPropagation();quickComplete('${t.id}')">${t.status==='done'?'✓':''}</div>
     <div class="todo-row-main">
       <div class="todo-row-title ${t.status==='done'?'done':''}">${escapeHtml(t.title)}</div>
-      ${metaLine?`<div class="todo-row-sub">${metaLine}</div>`:''}
+      ${cName?`<div class="todo-row-sub">${escapeHtml(cName)}</div>`:''}
     </div>
+    ${tagsHtml}
     ${metaText? `<div class="todo-row-meta ${metaCls}">${metaText}</div>`:''}
     ${t.status!=='done' ? `<div class="todo-move-btns">
       <button title="往上移" onclick="event.stopPropagation();moveTodayCard('${t.id}',-1)">▲</button>
