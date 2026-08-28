@@ -107,30 +107,34 @@ a{ color:inherit; }
 .up-card .up-action{ margin-top:auto; padding-top:4px; }
 .up-card .up-action button{ width:100%; }
 
-.todo-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-@media(max-width:760px){ .todo-grid{ grid-template-columns:repeat(2,1fr); } }
-@media(max-width:520px){ .todo-grid{ grid-template-columns:1fr; } }
-.todo-card{ background:var(--surface); border:1px solid var(--line-faint); border-radius:8px; padding:11px 12px; cursor:pointer; display:flex; flex-direction:column; gap:5px; min-height:86px; transition:border-color .12s, box-shadow .12s; }
-.todo-card:hover{ border-color:var(--accent); }
-.todo-card.drag-over{ border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft) inset; }
-.todo-card-top{ display:flex; justify-content:space-between; align-items:center; }
-.todo-move-btns{ display:flex; gap:2px; }
+.todo-list{ display:flex; flex-direction:column; }
+.todo-list-row{ display:flex; align-items:center; gap:10px; padding:9px 4px; border-bottom:1px solid var(--line-faint); cursor:pointer; }
+.todo-list-row:hover{ background:#f8f5ef; }
+.todo-list-row.readonly{ cursor:pointer; }
+.todo-row-main{ flex:1; min-width:0; }
+.todo-row-title{ font-size:13.5px; font-weight:600; }
+.todo-row-title.done{ text-decoration:line-through; color:var(--ink-faint); font-weight:400; }
+.todo-row-sub{ font-size:11px; color:var(--ink-faint); margin-top:1px; display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.todo-row-meta{ font-size:11px; color:var(--ink-faint); white-space:nowrap; flex-shrink:0; }
+.todo-row-meta.overdue{ color:var(--red); }
+.todo-row-meta.soon{ color:var(--amber); }
+.todo-move-btns{ display:flex; gap:2px; flex-shrink:0; }
 .todo-move-btns button{ border:1px solid var(--line); background:var(--bg); color:var(--ink-soft); border-radius:5px; font-size:10px; padding:2px 6px; line-height:1.4; }
 .todo-move-btns button:hover{ background:var(--line-faint); color:var(--ink); }
-.todo-card-title{ font-size:13.5px; font-weight:600; line-height:1.4; }
-.todo-card-title.done{ text-decoration:line-through; color:var(--ink-faint); }
-.todo-card-sub{ font-size:11px; color:var(--ink-faint); }
-.todo-card-meta{ font-size:11px; color:var(--ink-faint); margin-top:auto; padding-top:4px; }
-.todo-card-meta.overdue{ color:var(--red); }
-.todo-card-meta.soon{ color:var(--amber); }
-.todo-card.readonly{ cursor:pointer; }
-.todo-tags{ display:flex; gap:4px; flex-wrap:wrap; }
 .todo-tag{ font-size:9.5px; padding:1px 7px; border-radius:8px; border:1px solid; }
 .todo-tag.tag-urgent{ color:var(--red); border-color:var(--red); background:var(--red-soft); }
 .todo-tag.tag-important{ color:var(--amber); border-color:var(--amber); background:var(--amber-soft); }
 .todo-tag.tag-work{ color:var(--accent-deep); border-color:var(--accent); background:var(--accent-soft); }
 .todo-tag.tag-personal{ color:var(--plum); border-color:var(--plum); background:var(--plum-pale); }
 .todo-tag.tag-other{ color:var(--ink-soft); border-color:var(--line); background:var(--bg); }
+
+.home-grid{ display:grid; grid-template-columns:1.4fr 1fr; gap:40px; align-items:start; }
+@media(max-width:760px){ .home-grid{ grid-template-columns:1fr; gap:0; } }
+.home-bullets{ list-style:disc; margin:0 0 4px; padding-left:20px; }
+.home-bullets li{ font-size:13.5px; padding:5px 0; cursor:pointer; line-height:1.5; }
+.home-bullets li:hover{ color:var(--accent-deep); }
+.home-bullets li.empty-item{ color:var(--ink-faint); cursor:default; list-style:none; margin-left:-20px; }
+.home-bullets li.empty-item:hover{ color:var(--ink-faint); }
 
 .proj-row{ padding:14px 4px; border-bottom:1px solid var(--line-faint); cursor:pointer; }
 .proj-row:hover{ background:#f8f5ef; }
@@ -579,17 +583,17 @@ function seedFreshInstall(){
   seedPrepTemplates();
   seedSchoolEvents();
   const t = todayStr();
-  const catId = n => DB.categories.find(c=>c.name===n).id;
+  const catId = n => { const c = DB.categories.find(c=>c.name===n); return c ? c.id : ''; };
   const addDays = n=>{ const d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
   const proj1 = { id:uid('p'), name:'墨墨的甦醒活動', categoryId:catId('閱讀推廣'), description:'學期末閱讀推廣主題活動', startDate:addDays(-5), dueDate:addDays(6), status:'doing', progress:40, nextAction:'確認海報印刷數量', academicYear:computeAcademicYear(t), isDemo:true };
   DB.projects.push(proj1);
-  const ev1 = { id:uid('e'), title:'墨墨的甦醒活動開始', date:addDays(30), endDate:'', categoryId:catId('閱讀推廣'), relatedProjectId:proj1.id, templateId:DB.prepTemplates.find(x=>x.name==='閱讀推廣活動').id, academicYear:computeAcademicYear(t), isDemo:true, startDate:addDays(30) };
+  const ev1 = { id:uid('e'), title:'墨墨的甦醒活動開始', date:addDays(30), endDate:'', categoryId:catId('閱讀推廣'), relatedProjectId:proj1.id, templateId:DB.prepTemplates.find(x=>x.name==='閱讀推廣活動').id, type:'活動', academicYear:computeAcademicYear(t), isDemo:true, startDate:addDays(30) };
   DB.events.push(ev1);
   DB.tasks.push(
-    { id:uid('t'), title:'印製墨墨的甦醒海報', category:'', categoryId:catId('閱讀推廣'), projectId:proj1.id, eventId:'', status:'doing', priority:'high', createdAt:t, scheduledDate:t, dueDate:addDays(1), completedDate:'', nextAction:'', notes:'', isToday:true, isDemo:true, academicYear:computeAcademicYear(t) },
-    { id:uid('t'), title:'SEL 教師共學社群邀約', categoryId:catId('SEL計畫執行'), projectId:'', eventId:'', status:'waiting', priority:'mid', createdAt:t, scheduledDate:'', dueDate:'', completedDate:'', nextAction:'', notes:'', isToday:false, isDemo:true, academicYear:computeAcademicYear(t),
+    { id:uid('t'), title:'印製墨墨的甦醒海報', categoryId:catId('閱讀推廣'), projectId:proj1.id, eventId:'', status:'doing', priority:'high', createdAt:t, scheduledDate:t, dueDate:addDays(1), completedDate:'', nextAction:'', notes:'', tags:['緊急'], attachments:'', isToday:true, isDemo:true, academicYear:computeAcademicYear(t) },
+    { id:uid('t'), title:'SEL 教師共學社群邀約', categoryId:catId('其他'), projectId:'', eventId:'', status:'waiting', priority:'mid', createdAt:t, scheduledDate:'', dueDate:'', completedDate:'', nextAction:'', notes:'', tags:[], attachments:'', isToday:false, isDemo:true, academicYear:computeAcademicYear(t),
       waitingFor:'蕭老師', waitingWhat:'提供研習資料與時段', waitingStart:t, waitingFollowUp:t },
-    { id:uid('t'), title:'下次主管會議圖書館資料彙整', categoryId:catId('主管會議資料'), projectId:'', eventId:'', status:'scheduled', priority:'high', createdAt:t, scheduledDate:addDays(1), dueDate:addDays(2), completedDate:'', nextAction:'', notes:'', isToday:false, isDemo:true, academicYear:computeAcademicYear(t) }
+    { id:uid('t'), title:'下次主管會議圖書館資料彙整', categoryId:catId('會議'), projectId:'', eventId:'', status:'scheduled', priority:'high', createdAt:t, scheduledDate:addDays(1), dueDate:addDays(2), completedDate:'', nextAction:'', notes:'', tags:['重要'], attachments:'', isToday:false, isDemo:true, academicYear:computeAcademicYear(t) }
   );
 }
 
@@ -747,35 +751,31 @@ function todoCardHtml(t, opts={}){
   const metaCls = over ? 'overdue' : (soon ? 'soon' : '');
   const cName = catName(t.categoryId);
   const tags = t.tags || [];
-  const tagsHtml = tags.length ? `<div class="todo-tags">${tags.map(tg=>`<span class="todo-tag tag-${tagClass(tg)}">${escapeHtml(tg)}</span>`).join('')}</div>` : '';
+  const tagsHtml = tags.length ? tags.map(tg=>`<span class="todo-tag tag-${tagClass(tg)}">${escapeHtml(tg)}</span>`).join('') : '';
+  const metaLine = [cName, tagsHtml].filter(Boolean).join(' ');
 
   if(opts.readonly){
     return `
-    <div class="todo-card readonly" onclick="switchTab('tasks')">
-      <div class="todo-card-title ${t.status==='done'?'done':''}">${escapeHtml(t.title)}</div>
-      ${cName?`<div class="todo-card-sub">${escapeHtml(cName)}</div>`:''}
-      ${tagsHtml}
-      ${metaText? `<div class="todo-card-meta ${metaCls}">${metaText}</div>`:''}
+    <div class="todo-list-row readonly" onclick="switchTab('tasks')">
+      <div class="todo-row-main">
+        <div class="todo-row-title ${t.status==='done'?'done':''}">${escapeHtml(t.title)}</div>
+        ${metaLine?`<div class="todo-row-sub">${metaLine}</div>`:''}
+      </div>
+      ${metaText? `<div class="todo-row-meta ${metaCls}">${metaText}</div>`:''}
     </div>`;
   }
   return `
-  <div class="todo-card" draggable="${t.status!=='done'}"
-    ondragstart="onTodayDragStart(event,'${t.id}')"
-    ondragover="event.preventDefault();this.classList.add('drag-over')"
-    ondragleave="this.classList.remove('drag-over')"
-    ondrop="onTodayDrop(event,'${t.id}')"
-    onclick="openTaskDrawer('${t.id}')">
-    <div class="todo-card-top">
-      <div class="task-check ${t.status==='done'?'checked':''}" onclick="event.stopPropagation();quickComplete('${t.id}')">${t.status==='done'?'✓':''}</div>
-      ${t.status!=='done' ? `<div class="todo-move-btns">
-        <button title="往上移" onclick="event.stopPropagation();moveTodayCard('${t.id}',-1)">▲</button>
-        <button title="往下移" onclick="event.stopPropagation();moveTodayCard('${t.id}',1)">▼</button>
-      </div>` : ''}
+  <div class="todo-list-row" onclick="openTaskDrawer('${t.id}')">
+    <div class="task-check ${t.status==='done'?'checked':''}" onclick="event.stopPropagation();quickComplete('${t.id}')">${t.status==='done'?'✓':''}</div>
+    <div class="todo-row-main">
+      <div class="todo-row-title ${t.status==='done'?'done':''}">${escapeHtml(t.title)}</div>
+      ${metaLine?`<div class="todo-row-sub">${metaLine}</div>`:''}
     </div>
-    <div class="todo-card-title ${t.status==='done'?'done':''}">${escapeHtml(t.title)}</div>
-    ${cName?`<div class="todo-card-sub">${escapeHtml(cName)}</div>`:''}
-    ${tagsHtml}
-    ${metaText? `<div class="todo-card-meta ${metaCls}">${metaText}</div>`:''}
+    ${metaText? `<div class="todo-row-meta ${metaCls}">${metaText}</div>`:''}
+    ${t.status!=='done' ? `<div class="todo-move-btns">
+      <button title="往上移" onclick="event.stopPropagation();moveTodayCard('${t.id}',-1)">▲</button>
+      <button title="往下移" onclick="event.stopPropagation();moveTodayCard('${t.id}',1)">▼</button>
+    </div>` : ''}
   </div>`;
 }
 let todayDragId = null;
@@ -859,28 +859,23 @@ function viewHome(){
   <div class="page-title">${new Date().toLocaleDateString('zh-TW',{month:'long',day:'numeric',weekday:'short'})}</div>
   <div class="page-sub">今天有 ${pending.length} 件待辦、${todayEvents.length} 個研習／會議／活動、${todayPersonal.length} 件個人行程。點項目可前往對應頁面查看與修改。</div>
 
-  <div class="section-label">待辦事項</div>
-  <div class="todo-grid">
-    ${pendingSorted.length? pendingSorted.map(x=>todoCardHtml(x,{readonly:true})).join('') : '<div class="empty-note">目前沒有待辦事項</div>'}
-  </div>
-
-  <div class="section-label">今日研習／會議／活動</div>
-  <div class="list-plain">
-    ${todayEvents.length? todayEvents.map(e=>`
-      <div class="task-row" onclick="switchTab('events')">
-        <div class="task-main">
-          <div class="task-title">${escapeHtml(e.title)}</div>
-          <div class="task-sub">${escapeHtml(e.type||'活動')}${catName(e.categoryId)?' · '+escapeHtml(catName(e.categoryId)):''}${e.location?' · '+escapeHtml(e.location):''}</div>
-        </div>
-      </div>`).join('') : '<div class="empty-note">今天沒有研習、會議或活動</div>'}
-  </div>
-
-  <div class="section-label">個人行程</div>
-  <div class="list-plain">
-    ${todayPersonal.length? todayPersonal.map(e=>`
-      <div class="task-row" onclick="switchTab('personal')">
-        <div class="task-main"><div class="task-title">${escapeHtml(e.title)}</div></div>
-      </div>`).join('') : '<div class="empty-note">今天沒有個人行程</div>'}
+  <div class="home-grid">
+    <div class="home-col-todo">
+      <div class="section-label">待辦事項</div>
+      <ul class="home-bullets">
+        ${pendingSorted.length? pendingSorted.map(x=>`<li onclick="switchTab('tasks')">${escapeHtml(x.title)}</li>`).join('') : '<li class="empty-item">今日無</li>'}
+      </ul>
+    </div>
+    <div class="home-col-side">
+      <div class="section-label">本日研習／活動／會議</div>
+      <ul class="home-bullets">
+        ${todayEvents.length? todayEvents.map(e=>`<li onclick="switchTab('events')">${escapeHtml(e.title)}</li>`).join('') : '<li class="empty-item">今日無</li>'}
+      </ul>
+      <div class="section-label" style="margin-top:28px;">個人行程</div>
+      <ul class="home-bullets">
+        ${todayPersonal.length? todayPersonal.map(e=>`<li onclick="switchTab('personal')">${escapeHtml(e.title)}</li>`).join('') : '<li class="empty-item">今日無</li>'}
+      </ul>
+    </div>
   </div>
   `;
 }
@@ -918,12 +913,12 @@ function viewTasks(){
   </div>
 
   <div class="section-label">待辦區 <span style="font-weight:400;font-size:11px;color:var(--ink-faint);margin-left:6px;">用卡片上的 ▲▼ 調整優先順序</span></div>
-  <div class="todo-grid">
+  <div class="todo-list">
     ${activeSorted.length? activeSorted.map(x=>todoCardHtml(x)).join('') : '<div class="empty-note">沒有待辦事項，按右下角「＋新增工作」開始記錄</div>'}
   </div>
 
   <div class="section-label">完成區 <span style="font-weight:400;font-size:11px;color:var(--ink-faint);margin-left:6px;">點勾選框可以移回待辦區</span></div>
-  <div class="todo-grid">
+  <div class="todo-list">
     ${done.length? done.map(x=>todoCardHtml(x)).join('') : '<div class="empty-note">還沒有完成的項目</div>'}
   </div>
   `;
