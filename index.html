@@ -323,7 +323,15 @@ window.storage = {
     return { key, deleted: !!(data&&data.ok), shared: !!shared };
   }
 };
-const DEFAULT_CATEGORY_NAMES = ["圖書借閱系統","圖書館館場佈置","資媒組","自主學習","高中優質化","教師研習","SEL計畫執行","閱讀推廣","圖書館會議","主管會議資料"];
+const DEFAULT_CATEGORY_NAMES = ["圖書館事務","學校事務","高中優質化","閱讀推廣","自主學習","會議","其他"];
+const EVENT_TYPES = ["研習","會議","活動","個人行程"];
+/* 舊版 10 個分類 → 新版 7 個分類的對應表，用於既有資料自動遷移，資料不會遺失 */
+const CATEGORY_MIGRATION_MAP = {
+  "圖書借閱系統":"圖書館事務", "圖書館館場佈置":"圖書館事務", "資媒組":"圖書館事務",
+  "教師研習":"會議", "圖書館會議":"會議", "主管會議資料":"會議",
+  "SEL計畫執行":"其他",
+  "高中優質化":"高中優質化", "閱讀推廣":"閱讀推廣", "自主學習":"自主學習"
+};
 const STATUS_LABELS = { inbox:'收件匣', scheduled:'已排程', doing:'進行中', waiting:'等待他人', checking:'待確認', done:'完成', archived:'已歸檔' };
 const PRIO_LABELS = { high:'高', mid:'中', low:'低' };
 const IMPACT_LABELS = { high:'高影響', medium:'中影響', low:'低影響' };
@@ -417,6 +425,10 @@ function migrateDB(){
   if(!DB.categories.length){
     DB.categories = DEFAULT_CATEGORY_NAMES.map((name,i)=>({ id:uid('cat'), name, archived:false, order:i }));
   }
+
+  // 1.5) 舊版 10 分類 → 新版 7 分類重新整併（只執行一次，既有資料改指向合併後的分類，不會遺失）
+  migrateCategorySchemeV2();
+
   const nameToId = {};
   DB.categories.forEach(c=>{ nameToId[c.name]=c.id; });
   function resolveCat(name){
@@ -437,15 +449,54 @@ function migrateDB(){
     if(e.endDate===undefined) e.endDate='';
     if(e.templateId===undefined) e.templateId='';
     if(e.relatedProjectId===undefined) e.relatedProjectId = e.projectId||'';
+    if(!e.type) e.type = '活動'; // 型態欄位：研習/會議/活動/個人行程，舊資料預設為「活動」
   });
   if(!DB.prepTemplates.length) seedPrepTemplates();
   if(!DB.schoolEvents.length) seedSchoolEvents();
+}
+
+/* 把舊的 10 個分類重新整併成新的 7 個分類。只執行一次（用 DB._catSchemeV2 記住做過了），
+   合併時會把所有指向舊分類的工作/專案/會議/成果/活動，改指向合併後留下來的那個分類 id，
+   不會有任何資料因此消失或變成「未分類」 */
+function migrateCategorySchemeV2(){
+  if(DB._catSchemeV2) return;
+  const groups = {}; // 新分類名稱 -> 對應到它的舊分類物件陣列
+  DB.categories.forEach(c=>{
+    const target = CATEGORY_MIGRATION_MAP[c.name] || (DEFAULT_CATEGORY_NAMES.includes(c.name) ? c.name : '其他');
+    if(!groups[target]) groups[target] = [];
+    groups[target].push(c);
+  });
+
+  const newCategories = [];
+  let order = 0;
+  DEFAULT_CATEGORY_NAMES.forEach(name=>{
+    const group = groups[name] || [];
+    if(group.length){
+      const survivor = group[0];
+      survivor.name = name;
+      survivor.order = order++;
+      newCategories.push(survivor);
+      for(let i=1;i<group.length;i++){
+        const dup = group[i];
+        ['tasks','projects','meetings','results','events'].forEach(coll=>{
+          (DB[coll]||[]).forEach(item=>{ if(item.categoryId===dup.id) item.categoryId=survivor.id; });
+        });
+      }
+    } else {
+      newCategories.push({ id:uid('cat'), name, archived:false, order:order++ });
+    }
+  });
+  DB.categories = newCategories;
+  DB._catSchemeV2 = true;
 }
 
 function catName(id){ if(!id) return ''; const c=DB.categories.find(x=>x.id===id); return c? c.name : ''; }
 function activeCategories(){ return DB.categories.filter(c=>!c.archived).sort((a,b)=>a.order-b.order); }
 function catOptionsHtml(selectedId){
   return `<option value="">未分類</option>` + activeCategories().map(c=>`<option value="${c.id}" ${selectedId===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('');
+}
+function eventTypeOptionsHtml(selected){
+  return EVENT_TYPES.map(t=>`<option value="${t}" ${selected===t?'selected':''}>${t}</option>`).join('');
 }
 
 async function persist(){
@@ -828,7 +879,7 @@ function viewToday(){
       <div class="task-row" onclick="openEventModal('${e.id}')">
         <div class="task-main">
           <div class="task-title">${escapeHtml(e.title)}</div>
-          ${catName(e.categoryId)?`<div class="task-sub">${escapeHtml(catName(e.categoryId))}</div>`:''}
+          <div class="task-sub">${escapeHtml(e.type||'活動')}${catName(e.categoryId)?' · '+escapeHtml(catName(e.categoryId)):''}</div>
         </div>
       </div>`).join('') : '<div class="empty-note">今天沒有活動、研習或會議</div>'}
   </div>
@@ -1131,20 +1182,21 @@ function renderSemesterView(){
 async function deleteEvent(id){ DB.events = DB.events.filter(e=>e.id!==id); await persist(); closeModal(); renderMain(); }
 
 function openEventModal(id){
-  const e = id? DB.events.find(x=>x.id===id) : { id:'', title:'', startDate:todayStr(), endDate:'', categoryId:'', relatedProjectId:'', templateId:'', academicYear:computeAcademicYear() };
+  const e = id? DB.events.find(x=>x.id===id) : { id:'', title:'', startDate:todayStr(), endDate:'', categoryId:'', relatedProjectId:'', templateId:'', type:'活動', academicYear:computeAcademicYear() };
   const warns = e.startDate ? checkConflicts(e.startDate, e.endDate, e.id) : [];
   openModal(`
     <h2>${id?'編輯活動':'新增活動'}</h2>
     <div class="d-field"><label>活動名稱</label><input type="text" id="ev-title" value="${escapeHtml(e.title)}"></div>
     <div class="d-row2">
+      <div class="d-field"><label>型態</label><select id="ev-type">${eventTypeOptionsHtml(e.type||'活動')}</select></div>
+      <div class="d-field"><label>業務分類</label><select id="ev-cat">${catOptionsHtml(e.categoryId)}</select></div>
+    </div>
+    <div class="d-row2">
       <div class="d-field"><label>開始日期</label><input type="date" id="ev-start" value="${e.startDate||e.date||todayStr()}" onchange="refreshConflictWarn()"></div>
       <div class="d-field"><label>結束日期（可留空）</label><input type="date" id="ev-end" value="${e.endDate||''}" onchange="refreshConflictWarn()"></div>
     </div>
     <div id="ev-conflict-area">${conflictWarnHtml(warns)}</div>
-    <div class="d-row2">
-      <div class="d-field"><label>業務分類</label><select id="ev-cat">${catOptionsHtml(e.categoryId)}</select></div>
-      <div class="d-field"><label>學年度</label><input type="text" id="ev-year" value="${escapeHtml(e.academicYear||computeAcademicYear())}"></div>
-    </div>
+    <div class="d-field"><label>學年度</label><input type="text" id="ev-year" value="${escapeHtml(e.academicYear||computeAcademicYear())}"></div>
     <div class="d-field"><label>相關專案</label><select id="ev-proj"><option value="">無</option>${DB.projects.map(p=>`<option value="${p.id}" ${e.relatedProjectId===p.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></div>
     <div class="d-field"><label>對應準備範本（選填，系統會依此主動提醒準備）</label><select id="ev-tpl"><option value="">無</option>${DB.prepTemplates.map(tp=>`<option value="${tp.id}" ${e.templateId===tp.id?'selected':''}>${escapeHtml(tp.name)}</option>`).join('')}</select></div>
     <div class="modal-actions">
@@ -1171,6 +1223,7 @@ async function saveEventModal(id){
   const data = {
     title, startDate: document.getElementById('ev-start').value, endDate: document.getElementById('ev-end').value,
     date: document.getElementById('ev-start').value, categoryId: document.getElementById('ev-cat').value,
+    type: document.getElementById('ev-type').value,
     academicYear: document.getElementById('ev-year').value, relatedProjectId: document.getElementById('ev-proj').value,
     templateId: document.getElementById('ev-tpl').value
   };
