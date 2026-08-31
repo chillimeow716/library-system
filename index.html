@@ -119,9 +119,10 @@ a{ color:inherit; }
 .todo-row-meta{ font-size:11px; color:var(--ink-faint); white-space:nowrap; flex-shrink:0; }
 .todo-row-meta.overdue{ color:var(--red); }
 .todo-row-meta.soon{ color:var(--amber); }
-.todo-move-btns{ display:flex; gap:2px; flex-shrink:0; }
-.todo-move-btns button{ border:1px solid var(--line); background:var(--bg); color:var(--ink-soft); border-radius:5px; font-size:10px; padding:2px 6px; line-height:1.4; }
-.todo-move-btns button:hover{ background:var(--line-faint); color:var(--ink); }
+.todo-drag-handle{ flex-shrink:0; color:var(--ink-faint); font-size:14px; letter-spacing:-2px; padding:6px 8px; cursor:grab; touch-action:none; user-select:none; border-radius:5px; }
+.todo-drag-handle:hover{ background:var(--line-faint); color:var(--ink-soft); }
+.todo-drag-handle:active{ cursor:grabbing; }
+.todo-list-row.dragging{ opacity:.55; background:var(--accent-soft); box-shadow:0 2px 8px rgba(0,0,0,0.08); position:relative; z-index:5; }
 .todo-tag{ font-size:9.5px; padding:1px 7px; border-radius:8px; border:1px solid; }
 .todo-tag.tag-urgent{ color:var(--red); border-color:var(--red); background:var(--red-soft); }
 .todo-tag.tag-important{ color:var(--amber); border-color:var(--amber); background:var(--amber-soft); }
@@ -766,7 +767,7 @@ function todoCardHtml(t, opts={}){
     </div>`;
   }
   return `
-  <div class="todo-list-row" onclick="openTaskDrawer('${t.id}')">
+  <div class="todo-list-row" data-task-id="${t.id}" onclick="openTaskDrawer('${t.id}')">
     <div class="task-check ${t.status==='done'?'checked':''}" onclick="event.stopPropagation();quickComplete('${t.id}')">${t.status==='done'?'✓':''}</div>
     <div class="todo-row-main">
       <div class="todo-row-title ${t.status==='done'?'done':''}">${escapeHtml(t.title)}</div>
@@ -774,43 +775,53 @@ function todoCardHtml(t, opts={}){
     </div>
     ${tagsHtml}
     ${metaText? `<div class="todo-row-meta ${metaCls}">${metaText}</div>`:''}
-    ${t.status!=='done' ? `<div class="todo-move-btns">
-      <button title="往上移" onclick="event.stopPropagation();moveTodayCard('${t.id}',-1)">▲</button>
-      <button title="往下移" onclick="event.stopPropagation();moveTodayCard('${t.id}',1)">▼</button>
-    </div>` : ''}
+    ${t.status!=='done' ? `<div class="todo-drag-handle" title="按住拖曳排序" onpointerdown="startTodoDrag(event,'${t.id}')">⠿⠿</div>` : ''}
   </div>`;
 }
-let todayDragId = null;
-function onTodayDragStart(e, id){
-  todayDragId = id;
-  try{ e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', id); }catch(_){}
-}
-async function onTodayDrop(e, targetId){
+
+/* 用 Pointer Events 自己實作拖曳排序，滑鼠、觸控（手機/平板）都適用，
+   不依賴瀏覽器原生 HTML5 拖曳（那個在觸控裝置上常常沒反應） */
+let todoDragState = null;
+function startTodoDrag(e, id){
   e.preventDefault();
-  if(e.currentTarget) e.currentTarget.classList.remove('drag-over');
-  if(!todayDragId || todayDragId===targetId) return;
-  await reorderTodayList(todayDragId, targetId);
-  todayDragId = null;
+  e.stopPropagation();
+  const row = document.querySelector(`.todo-list-row[data-task-id="${id}"]`);
+  const list = row ? row.parentElement : null;
+  if(!row || !list) return;
+  todoDragState = { id, row, list, startY: e.clientY };
+  row.classList.add('dragging');
+  row.setPointerCapture && row.setPointerCapture(e.pointerId);
+  row.addEventListener('pointermove', onTodoDragMove);
+  row.addEventListener('pointerup', onTodoDragEnd);
+  row.addEventListener('pointercancel', onTodoDragEnd);
 }
-async function moveTodayCard(id, direction){
-  const order = (window.__todayOrderIds || []).slice();
-  const idx = order.indexOf(id);
-  if(idx===-1) return;
-  const swapIdx = idx + direction;
-  if(swapIdx<0 || swapIdx>=order.length) return;
-  const tmp = order[idx]; order[idx]=order[swapIdx]; order[swapIdx]=tmp;
-  DB.todayOrder = order;
-  await persist();
-  renderMain();
+function onTodoDragMove(e){
+  if(!todoDragState) return;
+  const { row, list } = todoDragState;
+  const x = e.clientX, y = e.clientY;
+  const rows = Array.from(list.querySelectorAll('.todo-list-row'));
+  for(const other of rows){
+    if(other === row) continue;
+    const rect = other.getBoundingClientRect();
+    if(y >= rect.top && y <= rect.bottom){
+      const before = y < rect.top + rect.height/2;
+      list.insertBefore(row, before ? other : other.nextSibling);
+      break;
+    }
+  }
 }
-async function reorderTodayList(dragId, targetId){
-  const order = (window.__todayOrderIds || []).slice();
-  const from = order.indexOf(dragId);
-  const to = order.indexOf(targetId);
-  if(from===-1 || to===-1) return;
-  order.splice(from,1);
-  order.splice(to,0,dragId);
-  DB.todayOrder = order;
+async function onTodoDragEnd(e){
+  if(!todoDragState) return;
+  const { row } = todoDragState;
+  row.classList.remove('dragging');
+  row.removeEventListener('pointermove', onTodoDragMove);
+  row.removeEventListener('pointerup', onTodoDragEnd);
+  row.removeEventListener('pointercancel', onTodoDragEnd);
+  try{ row.releasePointerCapture && row.releasePointerCapture(e.pointerId); }catch(_){}
+  const list = row.parentElement;
+  const newOrder = Array.from(list.querySelectorAll('.todo-list-row')).map(r=>r.dataset.taskId);
+  todoDragState = null;
+  DB.todayOrder = newOrder;
   await persist();
   renderMain();
 }
