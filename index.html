@@ -790,7 +790,7 @@ function startTodoDrag(e, id){
   const row = document.querySelector(`.todo-list-row[data-task-id="${id}"]`);
   const list = row ? row.parentElement : null;
   if(!row || !list) return;
-  todoDragState = { id, row, list };
+  todoDragState = { id, row, list, pendingY:null, raf:null };
   row.classList.add('dragging');
   document.addEventListener('pointermove', onTodoDragMove);
   document.addEventListener('pointerup', onTodoDragEnd);
@@ -801,14 +801,23 @@ function startTodoDrag(e, id){
 function onTodoDragMove(e){
   if(!todoDragState) return;
   e.preventDefault();
-  const { row, list } = todoDragState;
-  const y = e.clientY;
-  const rows = Array.from(list.querySelectorAll('.todo-list-row'));
+  // 用 requestAnimationFrame 節流：手指/滑鼠移動事件觸發頻率遠高於畫面更新頻率，
+  // 每次移動都立刻重新計算位置會造成明顯卡頓，改成每一影格最多算一次
+  todoDragState.pendingY = e.clientY;
+  if(todoDragState.raf) return;
+  todoDragState.raf = requestAnimationFrame(processTodoDragMove);
+}
+function processTodoDragMove(){
+  if(!todoDragState) return;
+  todoDragState.raf = null;
+  const { row, list, pendingY } = todoDragState;
+  if(pendingY==null) return;
+  const rows = list.querySelectorAll('.todo-list-row');
   for(const other of rows){
     if(other === row) continue;
     const rect = other.getBoundingClientRect();
-    if(y >= rect.top && y <= rect.bottom){
-      const before = y < rect.top + rect.height/2;
+    if(pendingY >= rect.top && pendingY <= rect.bottom){
+      const before = pendingY < rect.top + rect.height/2;
       list.insertBefore(row, before ? other : other.nextSibling);
       break;
     }
@@ -816,7 +825,8 @@ function onTodoDragMove(e){
 }
 async function onTodoDragEnd(e){
   if(!todoDragState) return;
-  const { row } = todoDragState;
+  const { row, raf } = todoDragState;
+  if(raf) cancelAnimationFrame(raf);
   row.classList.remove('dragging');
   document.removeEventListener('pointermove', onTodoDragMove);
   document.removeEventListener('pointerup', onTodoDragEnd);
