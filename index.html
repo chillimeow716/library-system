@@ -780,7 +780,9 @@ function todoCardHtml(t, opts={}){
 }
 
 /* 用 Pointer Events 自己實作拖曳排序，滑鼠、觸控（手機/平板）都適用，
-   不依賴瀏覽器原生 HTML5 拖曳（那個在觸控裝置上常常沒反應） */
+   不依賴瀏覽器原生 HTML5 拖曳（那個在觸控裝置上常常沒反應），
+   也不依賴 setPointerCapture（部分瀏覽器環境呼叫這個會失敗，導致整組拖曳失效），
+   改成直接監聽整個文件的移動/放開事件，兼容性更好 */
 let todoDragState = null;
 function startTodoDrag(e, id){
   e.preventDefault();
@@ -788,17 +790,19 @@ function startTodoDrag(e, id){
   const row = document.querySelector(`.todo-list-row[data-task-id="${id}"]`);
   const list = row ? row.parentElement : null;
   if(!row || !list) return;
-  todoDragState = { id, row, list, startY: e.clientY };
+  todoDragState = { id, row, list };
   row.classList.add('dragging');
-  row.setPointerCapture && row.setPointerCapture(e.pointerId);
-  row.addEventListener('pointermove', onTodoDragMove);
-  row.addEventListener('pointerup', onTodoDragEnd);
-  row.addEventListener('pointercancel', onTodoDragEnd);
+  document.addEventListener('pointermove', onTodoDragMove);
+  document.addEventListener('pointerup', onTodoDragEnd);
+  document.addEventListener('pointercancel', onTodoDragEnd);
+  document.addEventListener('mousemove', onTodoDragMove);
+  document.addEventListener('mouseup', onTodoDragEnd);
 }
 function onTodoDragMove(e){
   if(!todoDragState) return;
+  e.preventDefault();
   const { row, list } = todoDragState;
-  const x = e.clientX, y = e.clientY;
+  const y = e.clientY;
   const rows = Array.from(list.querySelectorAll('.todo-list-row'));
   for(const other of rows){
     if(other === row) continue;
@@ -814,10 +818,11 @@ async function onTodoDragEnd(e){
   if(!todoDragState) return;
   const { row } = todoDragState;
   row.classList.remove('dragging');
-  row.removeEventListener('pointermove', onTodoDragMove);
-  row.removeEventListener('pointerup', onTodoDragEnd);
-  row.removeEventListener('pointercancel', onTodoDragEnd);
-  try{ row.releasePointerCapture && row.releasePointerCapture(e.pointerId); }catch(_){}
+  document.removeEventListener('pointermove', onTodoDragMove);
+  document.removeEventListener('pointerup', onTodoDragEnd);
+  document.removeEventListener('pointercancel', onTodoDragEnd);
+  document.removeEventListener('mousemove', onTodoDragMove);
+  document.removeEventListener('mouseup', onTodoDragEnd);
   const list = row.parentElement;
   const newOrder = Array.from(list.querySelectorAll('.todo-list-row')).map(r=>r.dataset.taskId);
   todoDragState = null;
