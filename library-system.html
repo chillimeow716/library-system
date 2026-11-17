@@ -11,7 +11,7 @@
   --accent:#3c6e64; --accent-deep:#2a4d46; --accent-soft:#e7efec;
   --red:#b3492f; --red-soft:#f6e4de;
   --amber:#8a5a1f; --amber-soft:#f4ecdb;
-  --plum:#6d5a7e;
+  --plum:#6d5a7e; --plum-pale:#ece5f0;
   --radius:6px;
 }
 *{ box-sizing:border-box; }
@@ -97,6 +97,46 @@ a{ color:inherit; }
 .up-action{ flex-shrink:0; }
 .up-action button{ border:1px solid var(--accent); color:var(--accent-deep); background:transparent; border-radius:12px; padding:4px 11px; font-size:11.5px; }
 .up-action button:hover{ background:var(--accent-soft); }
+.up-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+@media(max-width:760px){ .up-grid{ grid-template-columns:repeat(2,1fr); } }
+@media(max-width:520px){ .up-grid{ grid-template-columns:1fr; } }
+.up-card{ background:var(--surface); border:1px solid var(--line-faint); border-radius:8px; padding:12px 13px; cursor:pointer; display:flex; flex-direction:column; gap:6px; min-height:78px; }
+.up-card:hover{ border-color:var(--accent); }
+.up-card .up-title{ font-size:13.5px; font-weight:600; line-height:1.4; }
+.up-card .up-sub{ font-size:11px; margin-top:0; }
+.up-card .up-action{ margin-top:auto; padding-top:4px; }
+.up-card .up-action button{ width:100%; }
+
+.todo-list{ display:flex; flex-direction:column; }
+.todo-list-row{ display:flex; align-items:center; gap:16px; padding:9px 4px; border-bottom:1px solid var(--line-faint); cursor:pointer; }
+.todo-list-row:hover{ background:#f8f5ef; }
+.todo-list-row.readonly{ cursor:pointer; }
+.todo-row-main{ flex:1; min-width:0; }
+.todo-row-title{ font-size:13.5px; font-weight:600; }
+.todo-row-title.done{ text-decoration:line-through; color:var(--ink-faint); font-weight:400; }
+.todo-row-sub{ font-size:11px; color:var(--ink-faint); margin-top:1px; }
+.todo-row-tags{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; flex-shrink:0; margin-left:auto; padding:0 12px; }
+.todo-row-meta{ font-size:11px; color:var(--ink-faint); white-space:nowrap; flex-shrink:0; }
+.todo-row-meta.overdue{ color:var(--red); }
+.todo-row-meta.soon{ color:var(--amber); }
+.todo-drag-handle{ flex-shrink:0; color:var(--ink-faint); font-size:14px; letter-spacing:-2px; padding:6px 8px; cursor:grab; touch-action:none; user-select:none; border-radius:5px; }
+.todo-drag-handle:hover{ background:var(--line-faint); color:var(--ink-soft); }
+.todo-drag-handle:active{ cursor:grabbing; }
+.todo-list-row.dragging{ opacity:.55; background:var(--accent-soft); box-shadow:0 2px 8px rgba(0,0,0,0.08); position:relative; z-index:5; }
+.todo-tag{ font-size:9.5px; padding:1px 7px; border-radius:8px; border:1px solid; }
+.todo-tag.tag-urgent{ color:var(--red); border-color:var(--red); background:var(--red-soft); }
+.todo-tag.tag-important{ color:var(--amber); border-color:var(--amber); background:var(--amber-soft); }
+.todo-tag.tag-work{ color:var(--accent-deep); border-color:var(--accent); background:var(--accent-soft); }
+.todo-tag.tag-personal{ color:var(--plum); border-color:var(--plum); background:var(--plum-pale); }
+.todo-tag.tag-other{ color:var(--ink-soft); border-color:var(--line); background:var(--bg); }
+
+.home-grid{ display:grid; grid-template-columns:1.4fr 1fr; gap:40px; align-items:start; }
+@media(max-width:760px){ .home-grid{ grid-template-columns:1fr; gap:0; } }
+.home-bullets{ list-style:disc; margin:0 0 4px; padding-left:20px; }
+.home-bullets li{ font-size:13.5px; padding:5px 0; cursor:pointer; line-height:1.5; }
+.home-bullets li:hover{ color:var(--accent-deep); }
+.home-bullets li.empty-item{ color:var(--ink-faint); cursor:default; list-style:none; margin-left:-20px; }
+.home-bullets li.empty-item:hover{ color:var(--ink-faint); }
 
 .proj-row{ padding:14px 4px; border-bottom:1px solid var(--line-faint); cursor:pointer; }
 .proj-row:hover{ background:#f8f5ef; }
@@ -135,6 +175,8 @@ a{ color:inherit; }
 .d-row2{ display:grid; grid-template-columns:1fr 1fr; gap:9px; }
 .d-row3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:9px; }
 .d-section-label{ font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--ink-faint); margin:20px 0 8px; border-top:1px solid var(--line-faint); padding-top:16px; }
+.tag-checks{ display:flex; gap:10px; flex-wrap:wrap; }
+.tag-check-item{ display:flex; align-items:center; gap:4px; font-size:12.5px; color:var(--ink-soft); cursor:pointer; }
 .d-section-label:first-of-type{ border-top:none; padding-top:0; margin-top:0; }
 .drawer-actions{ display:flex; justify-content:space-between; align-items:center; margin-top:22px; flex-wrap:wrap; gap:8px; }
 .conflict-warn{ font-size:12px; color:var(--red); background:var(--red-soft); border-radius:6px; padding:7px 10px; margin-top:6px; }
@@ -297,14 +339,24 @@ window.storage = {
     return { key, deleted: !!(data&&data.ok), shared: !!shared };
   }
 };
-const DEFAULT_CATEGORY_NAMES = ["圖書借閱系統","圖書館館場佈置","資媒組","自主學習","高中優質化","教師研習","SEL計畫執行","閱讀推廣","圖書館會議","主管會議資料"];
+const DEFAULT_CATEGORY_NAMES = ["圖書館事務","學校事務","高中優質化","閱讀推廣","自主學習","會議","其他"];
+const EVENT_TYPES = ["研習","會議","活動","個人行程"];
+/* 舊版 10 個分類 → 新版 7 個分類的對應表，用於既有資料自動遷移，資料不會遺失 */
+const CATEGORY_MIGRATION_MAP = {
+  "圖書借閱系統":"圖書館事務", "圖書館館場佈置":"圖書館事務", "資媒組":"圖書館事務",
+  "教師研習":"會議", "圖書館會議":"會議", "主管會議資料":"會議",
+  "SEL計畫執行":"其他",
+  "高中優質化":"高中優質化", "閱讀推廣":"閱讀推廣", "自主學習":"自主學習"
+};
 const STATUS_LABELS = { inbox:'收件匣', scheduled:'已排程', doing:'進行中', waiting:'等待他人', checking:'待確認', done:'完成', archived:'已歸檔' };
 const PRIO_LABELS = { high:'高', mid:'中', low:'低' };
 const IMPACT_LABELS = { high:'高影響', medium:'中影響', low:'低影響' };
 
 let DB = null;
-let currentTab = 'today';
+let currentTab = 'home';
 let saveTimer = null;
+let lastKnownRaw = null; // 用來比對遠端資料是否有變動（例如來自 LINE 機器人的更新）
+let pollTimer = null;
 
 function uid(p){ return (p||'id')+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
@@ -346,13 +398,41 @@ async function loadDB(){
     await persist();
     return;
   }
+  lastKnownRaw = raw;
   migrateDB();
 }
+
+/* 定期檢查遠端資料是否有更新（例如來自 LINE 機器人的新增/完成），
+   有更新才重新渲染，且避開使用者正在編輯的當下，以免打斷操作 */
+function startPolling(){
+  if(pollTimer) return;
+  pollTimer = setInterval(async ()=>{
+    const modalOpen = document.getElementById('modalOverlay').classList.contains('show');
+    const drawerOpen = document.getElementById('drawer').classList.contains('show');
+    if(modalOpen || drawerOpen) return; // 使用者正在操作中，這次先跳過
+    try{
+      const res = await window.storage.get(STORAGE_KEY, false);
+      const raw = res ? res.value : null;
+      if(raw && raw !== lastKnownRaw){
+        lastKnownRaw = raw;
+        DB = JSON.parse(raw);
+        migrateDB();
+        renderNav();
+        renderMain();
+        toast('資料已更新');
+      }
+    }catch(e){
+      console.error('poll error', e); // 靜默失敗，不打擾使用者，下次再試
+    }
+  }, 25000);
+}
+function stopPolling(){ clearInterval(pollTimer); pollTimer = null; }
 
 function migrateDB(){
   ['tasks','projects','meetings','results','events','reviews','categories'].forEach(k=>{ if(!DB[k]) DB[k]=[]; });
   if(!DB.schoolEvents) DB.schoolEvents = [];
   if(!DB.prepTemplates) DB.prepTemplates = [];
+  if(!DB.todayOrder) DB.todayOrder = []; // 待辦清單手動排序記錄的工作 id 順序
 
   // 1) categories: string[] -> {id,name,archived,order}[]
   if(DB.categories.length && typeof DB.categories[0] === 'string'){
@@ -361,6 +441,10 @@ function migrateDB(){
   if(!DB.categories.length){
     DB.categories = DEFAULT_CATEGORY_NAMES.map((name,i)=>({ id:uid('cat'), name, archived:false, order:i }));
   }
+
+  // 1.5) 舊版 10 分類 → 新版 7 分類重新整併（只執行一次，既有資料改指向合併後的分類，不會遺失）
+  migrateCategorySchemeV2();
+
   const nameToId = {};
   DB.categories.forEach(c=>{ nameToId[c.name]=c.id; });
   function resolveCat(name){
@@ -376,14 +460,58 @@ function migrateDB(){
       if(item.academicYear===undefined) item.academicYear = computeAcademicYear(item.createdAt||item.date||item.startDate||item.dueDate||todayStr());
     });
   });
-  DB.tasks.forEach(t=>{ if(t.eventId===undefined) t.eventId=''; });
+  DB.tasks.forEach(t=>{
+    if(t.eventId===undefined) t.eventId='';
+    if(!Array.isArray(t.tags)) t.tags=[];
+    if(t.attachments===undefined) t.attachments='';
+  });
   DB.events.forEach(e=>{
     if(e.endDate===undefined) e.endDate='';
     if(e.templateId===undefined) e.templateId='';
     if(e.relatedProjectId===undefined) e.relatedProjectId = e.projectId||'';
+    if(!e.type) e.type = '活動'; // 型態欄位：研習/會議/活動/個人行程，舊資料預設為「活動」
+    if(e.location===undefined) e.location='';
+    if(e.info===undefined) e.info='';
+    if(e.time===undefined) e.time='';
+    if(e.notes===undefined) e.notes='';
   });
   if(!DB.prepTemplates.length) seedPrepTemplates();
   if(!DB.schoolEvents.length) seedSchoolEvents();
+}
+
+/* 把舊的 10 個分類重新整併成新的 7 個分類。只執行一次（用 DB._catSchemeV2 記住做過了），
+   合併時會把所有指向舊分類的工作/專案/會議/成果/活動，改指向合併後留下來的那個分類 id，
+   不會有任何資料因此消失或變成「未分類」 */
+function migrateCategorySchemeV2(){
+  if(DB._catSchemeV2) return;
+  const groups = {}; // 新分類名稱 -> 對應到它的舊分類物件陣列
+  DB.categories.forEach(c=>{
+    const target = CATEGORY_MIGRATION_MAP[c.name] || (DEFAULT_CATEGORY_NAMES.includes(c.name) ? c.name : '其他');
+    if(!groups[target]) groups[target] = [];
+    groups[target].push(c);
+  });
+
+  const newCategories = [];
+  let order = 0;
+  DEFAULT_CATEGORY_NAMES.forEach(name=>{
+    const group = groups[name] || [];
+    if(group.length){
+      const survivor = group[0];
+      survivor.name = name;
+      survivor.order = order++;
+      newCategories.push(survivor);
+      for(let i=1;i<group.length;i++){
+        const dup = group[i];
+        ['tasks','projects','meetings','results','events'].forEach(coll=>{
+          (DB[coll]||[]).forEach(item=>{ if(item.categoryId===dup.id) item.categoryId=survivor.id; });
+        });
+      }
+    } else {
+      newCategories.push({ id:uid('cat'), name, archived:false, order:order++ });
+    }
+  });
+  DB.categories = newCategories;
+  DB._catSchemeV2 = true;
 }
 
 function catName(id){ if(!id) return ''; const c=DB.categories.find(x=>x.id===id); return c? c.name : ''; }
@@ -391,14 +519,19 @@ function activeCategories(){ return DB.categories.filter(c=>!c.archived).sort((a
 function catOptionsHtml(selectedId){
   return `<option value="">未分類</option>` + activeCategories().map(c=>`<option value="${c.id}" ${selectedId===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('');
 }
+function eventTypeOptionsHtml(selected){
+  return EVENT_TYPES.map(t=>`<option value="${t}" ${selected===t?'selected':''}>${t}</option>`).join('');
+}
 
 async function persist(){
   clearTimeout(saveTimer);
   return new Promise(resolve=>{
     saveTimer = setTimeout(async ()=>{
       try{
-        const r = await window.storage.set(STORAGE_KEY, JSON.stringify(DB), false);
+        const serialized = JSON.stringify(DB);
+        const r = await window.storage.set(STORAGE_KEY, serialized, false);
         if(!r) toast('⚠ 儲存失敗，請檢查網路連線');
+        else lastKnownRaw = serialized; // 避免下次輪詢把自己剛存的資料誤判成「有新更新」
       }
       catch(e){
         console.error('storage error', e);
@@ -452,17 +585,17 @@ function seedFreshInstall(){
   seedPrepTemplates();
   seedSchoolEvents();
   const t = todayStr();
-  const catId = n => DB.categories.find(c=>c.name===n).id;
+  const catId = n => { const c = DB.categories.find(c=>c.name===n); return c ? c.id : ''; };
   const addDays = n=>{ const d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
   const proj1 = { id:uid('p'), name:'墨墨的甦醒活動', categoryId:catId('閱讀推廣'), description:'學期末閱讀推廣主題活動', startDate:addDays(-5), dueDate:addDays(6), status:'doing', progress:40, nextAction:'確認海報印刷數量', academicYear:computeAcademicYear(t), isDemo:true };
   DB.projects.push(proj1);
-  const ev1 = { id:uid('e'), title:'墨墨的甦醒活動開始', date:addDays(30), endDate:'', categoryId:catId('閱讀推廣'), relatedProjectId:proj1.id, templateId:DB.prepTemplates.find(x=>x.name==='閱讀推廣活動').id, academicYear:computeAcademicYear(t), isDemo:true, startDate:addDays(30) };
+  const ev1 = { id:uid('e'), title:'墨墨的甦醒活動開始', date:addDays(30), endDate:'', categoryId:catId('閱讀推廣'), relatedProjectId:proj1.id, templateId:DB.prepTemplates.find(x=>x.name==='閱讀推廣活動').id, type:'活動', academicYear:computeAcademicYear(t), isDemo:true, startDate:addDays(30) };
   DB.events.push(ev1);
   DB.tasks.push(
-    { id:uid('t'), title:'印製墨墨的甦醒海報', category:'', categoryId:catId('閱讀推廣'), projectId:proj1.id, eventId:'', status:'doing', priority:'high', createdAt:t, scheduledDate:t, dueDate:addDays(1), completedDate:'', nextAction:'', notes:'', isToday:true, isDemo:true, academicYear:computeAcademicYear(t) },
-    { id:uid('t'), title:'SEL 教師共學社群邀約', categoryId:catId('SEL計畫執行'), projectId:'', eventId:'', status:'waiting', priority:'mid', createdAt:t, scheduledDate:'', dueDate:'', completedDate:'', nextAction:'', notes:'', isToday:false, isDemo:true, academicYear:computeAcademicYear(t),
+    { id:uid('t'), title:'印製墨墨的甦醒海報', categoryId:catId('閱讀推廣'), projectId:proj1.id, eventId:'', status:'doing', priority:'high', createdAt:t, scheduledDate:t, dueDate:addDays(1), completedDate:'', nextAction:'', notes:'', tags:['緊急'], attachments:'', isToday:true, isDemo:true, academicYear:computeAcademicYear(t) },
+    { id:uid('t'), title:'SEL 教師共學社群邀約', categoryId:catId('其他'), projectId:'', eventId:'', status:'waiting', priority:'mid', createdAt:t, scheduledDate:'', dueDate:'', completedDate:'', nextAction:'', notes:'', tags:[], attachments:'', isToday:false, isDemo:true, academicYear:computeAcademicYear(t),
       waitingFor:'蕭老師', waitingWhat:'提供研習資料與時段', waitingStart:t, waitingFollowUp:t },
-    { id:uid('t'), title:'下次主管會議圖書館資料彙整', categoryId:catId('主管會議資料'), projectId:'', eventId:'', status:'scheduled', priority:'high', createdAt:t, scheduledDate:addDays(1), dueDate:addDays(2), completedDate:'', nextAction:'', notes:'', isToday:false, isDemo:true, academicYear:computeAcademicYear(t) }
+    { id:uid('t'), title:'下次主管會議圖書館資料彙整', categoryId:catId('會議'), projectId:'', eventId:'', status:'scheduled', priority:'high', createdAt:t, scheduledDate:addDays(1), dueDate:addDays(2), completedDate:'', nextAction:'', notes:'', tags:['重要'], attachments:'', isToday:false, isDemo:true, academicYear:computeAcademicYear(t) }
   );
 }
 
@@ -508,21 +641,42 @@ function prepSuggestions(withinDays=45){
     return dd!==null && dd>=0 && dd<=withinDays;
   }).sort((a,b)=> daysDiff(eventDate(a)) - daysDiff(eventDate(b)));
 }
+/* Today 頁「接下來需要準備」用：合併「活動（Event）」跟「有截止日的工作（Task）」，
+   因為 LINE 機器人新增的東西大多是 Task 不是 Event，只看 Event 會漏掉大部分內容 */
+function upcomingActivitiesForToday(withinDays){
+  const t = todayStr();
+  const items = [];
+  DB.events.forEach(e=>{
+    const dd = daysDiff(eventDate(e));
+    if(dd!==null && dd>=0 && dd<=withinDays){
+      items.push({ kind:'event', id:e.id, title:e.title, date:eventDate(e), templateId:e.templateId, hasTasks:eventHasTasks(e.id) });
+    }
+  });
+  activeTasks().forEach(x=>{
+    if(x.status==='done') return;
+    if(!x.dueDate) return;
+    const dd = daysDiff(x.dueDate);
+    // dd>0：今天到期的已經在「待辦清單」顯示過了，這裡不重複列
+    if(dd!==null && dd>0 && dd<=withinDays){
+      items.push({ kind:'task', id:x.id, title:x.title, date:x.dueDate });
+    }
+  });
+  items.sort((a,b)=> daysDiff(a.date) - daysDiff(b.date));
+  return items;
+}
 
 /* ============================================================
    Navigation
 ============================================================ */
 const PRIMARY_TABS = [
-  {k:'today', l:'Today'}, {k:'inbox', l:'Inbox'}, {k:'tasks', l:'Tasks'},
-  {k:'projects', l:'Projects'}, {k:'calendar', l:'Calendar'}, {k:'library', l:'Library'}
+  {k:'home', l:'首頁'}, {k:'tasks', l:'待辦事項'}, {k:'events', l:'研習/會議/活動'},
+  {k:'personal', l:'個人行程'}, {k:'calendar', l:'整體行事曆'}
 ];
-const SECONDARY_TABS = [ {k:'review', l:'Review'}, {k:'settings', l:'Settings'} ];
-function inboxCount(){ return (DB && DB.tasks) ? DB.tasks.filter(t=>t.status==='inbox').length : 0; }
+const SECONDARY_TABS = [ {k:'review', l:'Review'}, {k:'settings', l:'後臺設定資料'} ];
 function renderNav(){
-  document.getElementById('navPrimary').innerHTML = PRIMARY_TABS.map(t=>{
-    const badge = t.k==='inbox' && inboxCount() ? ` <span style="color:var(--ink-faint);font-size:11px;">${inboxCount()}</span>` : '';
-    return `<button class="${t.k===currentTab?'active':''}" onclick="switchTab('${t.k}')">${t.l}${badge}</button>`;
-  }).join('');
+  document.getElementById('navPrimary').innerHTML = PRIMARY_TABS.map(t=>
+    `<button class="${t.k===currentTab?'active':''}" onclick="switchTab('${t.k}')">${t.l}</button>`
+  ).join('');
   document.getElementById('navSecondary').innerHTML = SECONDARY_TABS.map(t=>
     `<button class="${t.k===currentTab?'active':''}" onclick="switchTab('${t.k}')">${t.l}</button>`
   ).join('');
@@ -535,12 +689,11 @@ function closeSidebarOnMobile(){ document.getElementById('sidebar').classList.re
 
 function renderMain(){
   const el = document.getElementById('mainArea');
-  if(currentTab==='today') el.innerHTML = viewToday();
-  else if(currentTab==='inbox') el.innerHTML = viewInbox();
+  if(currentTab==='home') el.innerHTML = viewHome();
   else if(currentTab==='tasks') el.innerHTML = viewTasks();
-  else if(currentTab==='projects') el.innerHTML = viewProjects();
+  else if(currentTab==='events') el.innerHTML = viewEventsHub();
+  else if(currentTab==='personal') el.innerHTML = viewPersonal();
   else if(currentTab==='calendar') el.innerHTML = viewCalendar();
-  else if(currentTab==='library') el.innerHTML = viewLibrary();
   else if(currentTab==='review') el.innerHTML = viewReview();
   else if(currentTab==='settings') el.innerHTML = viewSettings();
   else if(currentTab==='search') el.innerHTML = window._searchHtml || '';
@@ -577,6 +730,117 @@ function taskRowHtml(t, opts={}){
     </div>
   </div>`;
 }
+
+/* 待辦清單專用：可拖曳排序的卡片樣式 */
+function sortTodayList(list){
+  const order = DB.todayOrder || [];
+  const remaining = list.slice();
+  const inOrder = [];
+  order.forEach(id=>{
+    const idx = remaining.findIndex(t=>t.id===id);
+    if(idx!==-1){ inOrder.push(remaining[idx]); remaining.splice(idx,1); }
+  });
+  remaining.sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
+  return inOrder.concat(remaining);
+}
+function todoCardHtml(t, opts={}){
+  const over = isOverdue(t);
+  const soon = !over && isDueSoon(t);
+  let metaText = '';
+  if(t.status==='waiting') metaText = '等待 · ' + (t.waitingFor||'');
+  else if(t.dueDate) metaText = (over?'已逾期 ':'') + fmtDate(t.dueDate);
+  else if(t.scheduledDate) metaText = fmtDate(t.scheduledDate);
+  const metaCls = over ? 'overdue' : (soon ? 'soon' : '');
+  const cName = catName(t.categoryId);
+  const tags = t.tags || [];
+  const tagsHtml = tags.length ? `<div class="todo-row-tags">${tags.map(tg=>`<span class="todo-tag tag-${tagClass(tg)}">${escapeHtml(tg)}</span>`).join('')}</div>` : '';
+
+  if(opts.readonly){
+    return `
+    <div class="todo-list-row readonly" onclick="switchTab('tasks')">
+      <div class="todo-row-main">
+        <div class="todo-row-title ${t.status==='done'?'done':''}">${escapeHtml(t.title)}</div>
+        ${cName?`<div class="todo-row-sub">${escapeHtml(cName)}</div>`:''}
+      </div>
+      ${tagsHtml}
+      ${metaText? `<div class="todo-row-meta ${metaCls}">${metaText}</div>`:''}
+    </div>`;
+  }
+  return `
+  <div class="todo-list-row" data-task-id="${t.id}" onclick="openTaskDrawer('${t.id}')">
+    <div class="task-check ${t.status==='done'?'checked':''}" onclick="event.stopPropagation();quickComplete('${t.id}')">${t.status==='done'?'✓':''}</div>
+    <div class="todo-row-main">
+      <div class="todo-row-title ${t.status==='done'?'done':''}">${escapeHtml(t.title)}</div>
+      ${cName?`<div class="todo-row-sub">${escapeHtml(cName)}</div>`:''}
+    </div>
+    ${tagsHtml}
+    ${metaText? `<div class="todo-row-meta ${metaCls}">${metaText}</div>`:''}
+    ${(t.status!=='done' && !opts.noDrag) ? `<div class="todo-drag-handle" title="按住拖曳排序" onpointerdown="startTodoDrag(event,'${t.id}')">⠿⠿</div>` : ''}
+  </div>`;
+}
+
+/* 用 Pointer Events 自己實作拖曳排序，滑鼠、觸控（手機/平板）都適用，
+   不依賴瀏覽器原生 HTML5 拖曳（那個在觸控裝置上常常沒反應），
+   也不依賴 setPointerCapture（部分瀏覽器環境呼叫這個會失敗，導致整組拖曳失效），
+   改成直接監聽整個文件的移動/放開事件，兼容性更好 */
+let todoDragState = null;
+function startTodoDrag(e, id){
+  e.preventDefault();
+  e.stopPropagation();
+  const row = document.querySelector(`.todo-list-row[data-task-id="${id}"]`);
+  const list = row ? row.parentElement : null;
+  if(!row || !list) return;
+  todoDragState = { id, row, list, pendingY:null, raf:null };
+  row.classList.add('dragging');
+  document.addEventListener('pointermove', onTodoDragMove);
+  document.addEventListener('pointerup', onTodoDragEnd);
+  document.addEventListener('pointercancel', onTodoDragEnd);
+  document.addEventListener('mousemove', onTodoDragMove);
+  document.addEventListener('mouseup', onTodoDragEnd);
+}
+function onTodoDragMove(e){
+  if(!todoDragState) return;
+  e.preventDefault();
+  // 用 requestAnimationFrame 節流：手指/滑鼠移動事件觸發頻率遠高於畫面更新頻率，
+  // 每次移動都立刻重新計算位置會造成明顯卡頓，改成每一影格最多算一次
+  todoDragState.pendingY = e.clientY;
+  if(todoDragState.raf) return;
+  todoDragState.raf = requestAnimationFrame(processTodoDragMove);
+}
+function processTodoDragMove(){
+  if(!todoDragState) return;
+  todoDragState.raf = null;
+  const { row, list, pendingY } = todoDragState;
+  if(pendingY==null) return;
+  const rows = list.querySelectorAll('.todo-list-row');
+  for(const other of rows){
+    if(other === row) continue;
+    const rect = other.getBoundingClientRect();
+    if(pendingY >= rect.top && pendingY <= rect.bottom){
+      const before = pendingY < rect.top + rect.height/2;
+      list.insertBefore(row, before ? other : other.nextSibling);
+      break;
+    }
+  }
+}
+async function onTodoDragEnd(e){
+  if(!todoDragState) return;
+  const { row, raf } = todoDragState;
+  if(raf) cancelAnimationFrame(raf);
+  row.classList.remove('dragging');
+  document.removeEventListener('pointermove', onTodoDragMove);
+  document.removeEventListener('pointerup', onTodoDragEnd);
+  document.removeEventListener('pointercancel', onTodoDragEnd);
+  document.removeEventListener('mousemove', onTodoDragMove);
+  document.removeEventListener('mouseup', onTodoDragEnd);
+  const list = row.parentElement;
+  const newOrder = Array.from(list.querySelectorAll('.todo-list-row')).map(r=>r.dataset.taskId);
+  todoDragState = null;
+  DB.todayOrder = newOrder;
+  await persist();
+  renderMain();
+}
+
 async function quickComplete(id){
   const t = DB.tasks.find(x=>x.id===id); if(!t) return;
   t.status = t.status==='done' ? 'scheduled' : 'done';
@@ -604,141 +868,244 @@ async function deleteTask(id){
 /* ============================================================
    Today
 ============================================================ */
-function viewToday(){
+let todayShowAllUpcoming = false;
+/* ============================================================
+   首頁（Home）：唯讀總覽，資料要到對應頁面才能修改
+============================================================ */
+function viewHome(){
   const t = todayStr();
-  const tasks = activeTasks();
-  const todayList = tasks.filter(x=> x.status!=='done' && (
-    x.scheduledDate===t || x.dueDate===t || x.isToday || (x.status==='waiting' && x.waitingFollowUp===t)
-  ));
-  const overdue = tasks.filter(isOverdue);
-  const dueSoon = tasks.filter(x=>isDueSoon(x,2) && !isOverdue(x) && x.dueDate!==t);
-  const followToday = tasks.filter(x=>x.status==='waiting' && x.waitingFollowUp===t);
-  const staleProjects = DB.projects.filter(p=>{
-    if(p.status==='done') return false;
-    const rel = DB.tasks.filter(x=>x.projectId===p.id);
-    const last = rel.reduce((acc,x)=> !acc || (x.scheduledDate||x.createdAt) > acc ? (x.scheduledDate||x.createdAt) : acc, p.startDate);
-    return daysDiff(last)!==null && daysDiff(last) <= -14;
+  const pending = activeTasks().filter(x=>x.status!=='done');
+  const pendingSorted = sortTodayList(pending);
+  window.__todayOrderIds = pendingSorted.map(x=>x.id);
+  const todayEvents = DB.events.filter(e=>{
+    if(e.type==='個人行程') return false;
+    const s=eventDate(e); const en=e.endDate||s; return t>=s && t<=en;
   });
-  const nearConflicts = upcomingMyEvents(14).map(e=>({e, warns:checkConflicts(e.startDate||e.date, e.endDate)})).filter(x=>x.warns.length);
-
-  const attentionLines = [];
-  overdue.forEach(x=>attentionLines.push({t:x, cls:'urgent', txt:`${x.title} 已逾期`}));
-  dueSoon.forEach(x=>attentionLines.push({t:x, cls:'warn', txt:`${x.title} 即將截止（${fmtDate(x.dueDate)}）`}));
-  followToday.forEach(x=>attentionLines.push({t:x, cls:'warn', txt:`${x.waitingFor||'對方'} 的「${x.title}」今天需要追蹤`}));
-  staleProjects.forEach(p=>attentionLines.push({p, cls:'warn', txt:`專案「${p.name}」超過 14 天沒有更新`}));
-  nearConflicts.forEach(({e,warns})=>warns.forEach(w=>attentionLines.push({e, cls:w.level==='high'?'urgent':'warn', txt:`「${e.title}」${w.text}`})));
-
-  // 接下來：即將發生的活動 + 準備建議
-  const events = upcomingMyEvents(45).slice(0,5);
-  const prepIds = new Set(prepSuggestions(45).map(e=>e.id));
-
-  const count = todayList.length;
-  const followCount = followToday.length;
-  let summary = count===0 ? '今天沒有排定的工作，找點想推進的事情吧。' : `今天有 ${count} 件事情值得處理`;
-  if(count>0 && followCount>0) summary += `，${followCount} 件事情需要追蹤。`;
-  else if(count>0) summary += '。';
+  const todayPersonal = DB.events.filter(e=>e.type==='個人行程' && eventDate(e)===t);
 
   return `
   <div class="page-title">${new Date().toLocaleDateString('zh-TW',{month:'long',day:'numeric',weekday:'short'})}</div>
-  <div class="page-sub">${summary}</div>
+  <div class="page-sub">今天有 ${pending.length} 件待辦、${todayEvents.length} 個研習／會議／活動、${todayPersonal.length} 件個人行程。點項目可前往對應頁面查看與修改。</div>
 
-  <div class="section-label">今天</div>
-  <div class="list-plain">
-    ${todayList.length? todayList.sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999')).map(x=>taskRowHtml(x)).join('') : '<div class="empty-note">沒有安排 — 到 Inbox 或 Tasks 找點事情來做，或享受空檔。</div>'}
-  </div>
-
-  ${attentionLines.length ? `
-  <div class="section-label">需要注意</div>
-  <div class="list-plain">
-    ${attentionLines.map(a=>`
-      <div class="attn-line ${a.cls}" onclick="${a.t?`openTaskDrawer('${a.t.id}')`:(a.p?`openProjectDrawer('${a.p.id}')`:(a.e?`openEventModal('${a.e.id}')`:''))}">
-        <span class="mk">${a.cls==='urgent'?'⚠':'↗'}</span>${escapeHtml(a.txt)}
-      </div>`).join('')}
-  </div>` : ''}
-
-  <div class="section-label">接下來需要準備 <button class="link-btn" style="margin-left:8px;" onclick="switchTab('calendar')">查看全部</button></div>
-  <div class="list-plain">
-    ${events.length ? events.map(e=>{
-      const dd = daysDiff(eventDate(e));
-      const isPrep = prepIds.has(e.id);
-      const tpl = DB.prepTemplates.find(x=>x.id===e.templateId);
-      let subText = `${fmtDate(eventDate(e))} · 還有 ${dd} 天`;
-      if(isPrep && tpl) subText += ` · 依「${escapeHtml(tpl.name)}」範本建議這段時間開始準備`;
-      else if(e.templateId && eventHasTasks(e.id)) subText += ` · 準備工作已建立`;
-      return `
-      <div class="up-row">
-        <div class="up-main" onclick="openEventModal('${e.id}')">
-          <div class="up-title">${escapeHtml(e.title)}</div>
-          <div class="up-sub ${isPrep?'prep':''}">${subText}</div>
-        </div>
-        ${isPrep ? `<div class="up-action"><button onclick="openPrepModal('${e.id}')">開始準備</button></div>` : ''}
-      </div>`;
-    }).join('') : '<div class="empty-note">未來 45 天內沒有排定的活動</div>'}
+  <div class="home-grid">
+    <div class="home-col-todo">
+      <div class="section-label">待辦事項</div>
+      <ul class="home-bullets">
+        ${pendingSorted.length? pendingSorted.map(x=>`<li onclick="switchTab('tasks')">${escapeHtml(x.title)}</li>`).join('') : '<li class="empty-item">今日無</li>'}
+      </ul>
+    </div>
+    <div class="home-col-side">
+      <div class="section-label">本日研習／活動／會議</div>
+      <ul class="home-bullets">
+        ${todayEvents.length? todayEvents.map(e=>`<li onclick="switchTab('events')">${escapeHtml(e.title)}</li>`).join('') : '<li class="empty-item">今日無</li>'}
+      </ul>
+      <div class="section-label" style="margin-top:28px;">個人行程</div>
+      <ul class="home-bullets">
+        ${todayPersonal.length? todayPersonal.map(e=>`<li onclick="switchTab('personal')">${escapeHtml(e.title)}</li>`).join('') : '<li class="empty-item">今日無</li>'}
+      </ul>
+    </div>
   </div>
   `;
 }
 
 /* ============================================================
-   Inbox
+   待辦事項（Tasks）：待辦區 + 完成區，可拖曳/按鈕調整順序，支援標籤與附件
 ============================================================ */
-function viewInbox(){
-  const list = DB.tasks.filter(t=>t.status==='inbox');
+const TASK_TAGS = ['緊急','重要','工作','個人','其他'];
+function tagClass(tag){
+  const map = {'緊急':'urgent','重要':'important','工作':'work','個人':'personal','其他':'other'};
+  return map[tag] || 'other';
+}
+let taskCatFilter = '全部';
+let taskViewMode = 'cat';   // 'cat' = 依分類看；'list' = 全部清單
+const AUTO_CAT_KEYWORDS = {
+  '高中優質化':['優質化','公優','免招標','計畫書','經費'],
+  '閱讀推廣':['閱讀','推廣','書展','好書','讀書','借閱','共讀'],
+  '自主學習':['自主學習','自主'],
+  '會議':['會議','董事會','主管','校務'],
+  '學校事務':['公文','校史','校慶','特刊','週年','回條','邀請函','簽','核銷','研習時數','成果'],
+  '圖書館事務':['圖書','盤點','財產','採購','書籍','館藏','編目','整架','志工','陶瓷']
+};
+function autoCategorizeTasks(){
+  const nameToId = {}; activeCategories().forEach(c=>{ nameToId[c.name]=c.id; });
+  let n=0;
+  DB.tasks.forEach(t=>{
+    if(t.status==='done'||t.status==='archived'||t.categoryId) return;
+    const text = (t.title||'')+(t.notes||'');
+    for(const [cat,kws] of Object.entries(AUTO_CAT_KEYWORDS)){
+      if(nameToId[cat] && kws.some(k=>text.includes(k))){ t.categoryId=nameToId[cat]; n++; break; }
+    }
+  });
+  if(n){ persist(); }
+  toast(n? `已自動分類 ${n} 件，沒歸到的請點開手動選` : '沒有可以自動判斷的項目，請點開手動選分類');
+  renderMain();
+}
+function taskSortKey(t){
+  const over = isOverdue(t) ? 0 : 1;
+  return over + '|' + (t.dueDate||t.scheduledDate||'9999-99-99');
+}
+function catGroupHtml(title, catId, tasks, events){
+  const over = tasks.filter(isOverdue).length;
+  const wait = tasks.filter(t=>t.status==='waiting').length;
+  const sorted = tasks.slice().sort((a,b)=>taskSortKey(a).localeCompare(taskSortKey(b)));
+  const evHtml = events.length ? events.map(e=>`<div class="todo-list-row readonly" onclick="switchTab('events')"><div class="todo-row-main"><div class="todo-row-title">📌 ${escapeHtml(e.title)}</div><div class="todo-row-sub">${escapeHtml(e.type||'行程')}</div></div><div class="todo-row-meta">${fmtDate(eventDate(e))}</div></div>`).join('') : '';
   return `
-  <div class="page-title">Inbox</div>
-  <div class="page-sub">${list.length ? `還有 ${list.length} 件事情尚未整理` : '收件匣是空的'}</div>
-  <div class="d-field" style="max-width:420px;margin-bottom:26px;">
-    <input type="text" class="qa-input" id="inboxQuickInput" placeholder="要記下什麼？" onkeydown="if(event.key==='Enter')quickInboxAdd()">
+  <div class="section-label" style="margin-top:26px;">${escapeHtml(title)}
+    <span style="font-weight:400;font-size:11px;color:var(--ink-faint);">${tasks.length} 件待辦${over?` · <span style="color:#b3472f;">${over} 逾期</span>`:''}${wait?` · ${wait} 等待中`:''}${events.length?` · ${events.length} 場行程`:''}</span>
+    ${catId==='__none'&&tasks.length?`<button class="btn" style="margin-left:auto;" onclick="autoCategorizeTasks()">自動分類</button>`:''}
   </div>
-  <div class="list-plain">
-    ${list.length ? list.map(t=>`
-      <div class="task-row" onclick="openTaskDrawer('${t.id}',{inboxSort:true})">
-        <div class="task-check" onclick="event.stopPropagation()"></div>
-        <div class="task-main"><div class="task-title">${escapeHtml(t.title)}</div></div>
-        <div class="task-meta">整理 →</div>
-      </div>`).join('') : ''}
+  <div class="todo-list">
+    ${sorted.length? sorted.map(x=>todoCardHtml(x,{noDrag:true})).join('') : '<div class="empty-note">目前沒有待辦</div>'}
+    ${evHtml}
   </div>`;
 }
-async function quickInboxAdd(){
-  const el = document.getElementById('inboxQuickInput');
-  const title = el.value.trim();
-  if(!title) return;
-  DB.tasks.push({ id:uid('t'), title, categoryId:'', projectId:'', eventId:'', status:'inbox', priority:'mid',
-    createdAt:todayStr(), scheduledDate:'', dueDate:'', completedDate:'', nextAction:'', notes:'', isToday:false, academicYear:computeAcademicYear() });
-  await persist(); el.value=''; renderMain(); toast('已記下');
+function viewTasks(){
+  const openAll = activeTasks().filter(t=>t.status!=='done');
+  const doneAll = activeTasks().filter(t=>t.status==='done');
+  const today = todayStr();
+  const futureEvents = DB.events.filter(e=> (e.endDate||eventDate(e)||'') >= today);
+  const cats = activeCategories();
+  const catIds = new Set(cats.map(c=>c.id));
+  const isNone = t => !t.categoryId || !catIds.has(t.categoryId);
+  const modeBar = `
+  <div class="segmented">
+    <button class="${taskViewMode==='cat'?'active':''}" onclick="taskViewMode='cat';renderMain()">依分類看</button>
+    <button class="${taskViewMode==='list'?'active':''}" onclick="taskViewMode='list';renderMain()">全部清單</button>
+  </div>`;
+
+  if(taskViewMode==='cat'){
+    const noneTasks = openAll.filter(isNone);
+    const tabs = [{id:'全部',name:'全部',n:openAll.length}]
+      .concat(cats.map(c=>({id:c.id,name:c.name,n:openAll.filter(t=>t.categoryId===c.id).length})))
+      .concat(noneTasks.length?[{id:'__none',name:'未分類',n:noneTasks.length}]:[]);
+    if(!tabs.some(x=>x.id===taskCatFilter)) taskCatFilter='全部';
+    const tabBar = `<div class="segmented" style="margin-top:6px;">${tabs.map(x=>`<button class="${taskCatFilter===x.id?'active':''}" onclick="taskCatFilter='${x.id}';renderMain()">${escapeHtml(x.name)} <span style="font-size:11px;color:var(--ink-faint);">${x.n}</span></button>`).join('')}</div>`;
+    const groups = [];
+    cats.forEach(c=>{
+      if(taskCatFilter!=='全部' && taskCatFilter!==c.id) return;
+      const ts = openAll.filter(t=>t.categoryId===c.id);
+      const evs = futureEvents.filter(e=>e.categoryId===c.id).sort((a,b)=>eventDate(a).localeCompare(eventDate(b)));
+      if(taskCatFilter==='全部' && !ts.length && !evs.length) return;
+      groups.push(catGroupHtml(c.name,c.id,ts,evs));
+    });
+    if(taskCatFilter==='全部'||taskCatFilter==='__none'){
+      const evs = futureEvents.filter(e=>!e.categoryId||!catIds.has(e.categoryId));
+      if(noneTasks.length||(taskCatFilter==='__none'&&evs.length)) groups.push(catGroupHtml('未分類','__none',noneTasks,taskCatFilter==='__none'?evs:[]));
+    }
+    return `
+    <div class="page-title">待辦事項</div>
+    <div class="page-sub">${openAll.length} 件待處理，依業務分類整理</div>
+    <div class="toolbar-line"><div class="spacer"></div><button class="btn primary" onclick="openQuickAdd()">＋ 新增</button></div>
+    ${modeBar}${tabBar}
+    ${groups.length? groups.join('') : '<div class="empty-note" style="margin-top:20px;">這個分類目前沒有待辦</div>'}
+    <div class="section-label" style="margin-top:34px;">已完成 <span style="font-weight:400;font-size:11px;color:var(--ink-faint);">${doneAll.length} 件，到「全部清單」查看</span></div>`;
+  }
+
+  let active = openAll, done = doneAll;
+  const activeSorted = sortTodayList(active);
+  window.__todayOrderIds = activeSorted.map(x=>x.id);
+  done = done.slice().sort((a,b)=>(b.completedDate||'').localeCompare(a.completedDate||''));
+  return `
+  <div class="page-title">待辦事項</div>
+  <div class="page-sub">${active.length} 件待處理、${done.length} 件已完成</div>
+  <div class="toolbar-line"><div class="spacer"></div><button class="btn primary" onclick="openQuickAdd()">＋ 新增</button></div>
+  ${modeBar}
+  <div class="section-label">待辦區 <span style="font-weight:400;font-size:11px;color:var(--ink-faint);margin-left:6px;">用卡片上的 ▲▼ 調整優先順序</span></div>
+  <div class="todo-list">
+    ${activeSorted.length? activeSorted.map(x=>todoCardHtml(x)).join('') : '<div class="empty-note">沒有待辦事項，按右下角「＋新增工作」開始記錄</div>'}
+  </div>
+  <div class="section-label">完成區 <span style="font-weight:400;font-size:11px;color:var(--ink-faint);margin-left:6px;">點勾選框可以移回待辦區</span></div>
+  <div class="todo-list">
+    ${done.length? done.map(x=>todoCardHtml(x)).join('') : '<div class="empty-note">還沒有完成的項目</div>'}
+  </div>
+  `;
 }
 
 /* ============================================================
-   Tasks
+   研習／會議／活動
 ============================================================ */
-let taskFilters = { seg:'all', cat:'全部' };
-function viewTasks(){
-  let list = activeTasks();
-  if(taskFilters.cat!=='全部') list = list.filter(t=>t.categoryId===taskFilters.cat);
-  if(taskFilters.seg==='doing') list = list.filter(t=>t.status==='doing'||t.status==='scheduled'||t.status==='checking');
-  else if(taskFilters.seg==='waiting') list = list.filter(t=>t.status==='waiting');
-  else if(taskFilters.seg==='done') list = list.filter(t=>t.status==='done');
-  list = list.sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
+let eventsSubTab = '研習';
+function viewEventsHub(){
+  const t = todayStr();
+  const all = DB.events.filter(e=>e.type===eventsSubTab);
+  const active = all.filter(e=> (e.endDate||eventDate(e)) >= t).sort((a,b)=>eventDate(a).localeCompare(eventDate(b)));
+  const completed = all.filter(e=> (e.endDate||eventDate(e)) < t).sort((a,b)=>eventDate(b).localeCompare(eventDate(a)));
   return `
-  <div class="page-title">Tasks</div>
-  <div class="page-sub">所有工作，依狀態與分類篩選</div>
-  <div class="toolbar-line">
-    <input type="text" id="taskSearchBox" placeholder="搜尋工作…" onkeydown="if(event.key==='Enter')doSearchWith(this.value)">
-    <select class="filter" onchange="taskFilters.cat=this.value;renderMain()">
-      <option value="全部" ${taskFilters.cat==='全部'?'selected':''}>全部分類</option>
-      ${activeCategories().map(c=>`<option value="${c.id}" ${taskFilters.cat===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}
-    </select>
-    <div class="spacer"></div>
-    <button class="btn primary" onclick="openQuickAdd()">＋ 新增</button>
-  </div>
+  <div class="page-title">研習／會議／活動</div>
+  <div class="page-sub">${all.length} 筆記錄</div>
   <div class="segmented">
-    <button class="${taskFilters.seg==='all'?'active':''}" onclick="taskFilters.seg='all';renderMain()">全部</button>
-    <button class="${taskFilters.seg==='doing'?'active':''}" onclick="taskFilters.seg='doing';renderMain()">進行中</button>
-    <button class="${taskFilters.seg==='waiting'?'active':''}" onclick="taskFilters.seg='waiting';renderMain()">等待</button>
-    <button class="${taskFilters.seg==='done'?'active':''}" onclick="taskFilters.seg='done';renderMain()">已完成</button>
+    <button class="${eventsSubTab==='研習'?'active':''}" onclick="eventsSubTab='研習';renderMain()">研習</button>
+    <button class="${eventsSubTab==='會議'?'active':''}" onclick="eventsSubTab='會議';renderMain()">會議</button>
+    <button class="${eventsSubTab==='活動'?'active':''}" onclick="eventsSubTab='活動';renderMain()">活動</button>
   </div>
+  <div class="toolbar-line" style="margin-top:14px;"><div class="spacer"></div><button class="btn primary" onclick="openEventModal(null,'${eventsSubTab}')">＋ 新增${eventsSubTab}</button></div>
+
+  <div class="section-label">進行中／未來</div>
   <div class="list-plain">
-    ${list.length? list.map(t=>taskRowHtml(t)).join('') : '<div class="empty-note">沒有符合條件的工作</div>'}
+    ${active.length? active.map(e=>eventRowHtml(e)).join('') : `<div class="empty-note">目前沒有${eventsSubTab}記錄</div>`}
+  </div>
+
+  <div class="section-label">已完成／已過期</div>
+  <div class="list-plain">
+    ${completed.length? completed.map(e=>eventRowHtml(e)).join('') : '<div class="empty-note">尚無記錄</div>'}
+  </div>
+  `;
+}
+function eventRowHtml(e){
+  return `
+  <div class="task-row" onclick="openEventModal('${e.id}')">
+    <div class="task-main">
+      <div class="task-title">${escapeHtml(e.title)}</div>
+      <div class="task-sub">${fmtDate(eventDate(e))}${e.time?' '+escapeHtml(e.time):''}${e.location?' · '+escapeHtml(e.location):''}${catName(e.categoryId)?' · '+escapeHtml(catName(e.categoryId)):''}</div>
+    </div>
+    <button class="link-btn" onclick="event.stopPropagation();deleteEventDirect('${e.id}')" style="flex-shrink:0;">刪除</button>
   </div>`;
+}
+async function deleteEventDirect(id){
+  if(!(await customConfirm('確定要刪除這筆記錄嗎？'))) return;
+  DB.events = DB.events.filter(e=>e.id!==id);
+  DB.tasks.forEach(t=>{ if(t.eventId===id) t.eventId=''; });
+  await persist(); renderMain(); toast('已刪除');
+}
+
+/* ============================================================
+   個人行程
+============================================================ */
+function viewPersonal(){
+  const list = DB.events.filter(e=>e.type==='個人行程').sort((a,b)=>eventDate(a).localeCompare(eventDate(b)));
+  return `
+  <div class="page-title">個人行程</div>
+  <div class="page-sub">${list.length} 筆</div>
+  <div class="d-row2" style="max-width:520px;">
+    <div class="d-field"><input type="text" id="personalTitleInput" placeholder="要記下什麼個人行程？" onkeydown="if(event.key==='Enter')addPersonalSchedule()"></div>
+    <div class="d-field"><input type="date" id="personalDateInput" value="${todayStr()}"></div>
+  </div>
+  <button class="btn primary" onclick="addPersonalSchedule()">＋ 新增</button>
+
+  <div class="section-label" style="margin-top:24px;">清單</div>
+  <div class="list-plain">
+    ${list.length? list.map(e=>`
+      <div class="task-row">
+        <div class="task-main"><div class="task-title">${escapeHtml(e.title)}</div><div class="task-sub">${fmtDate(eventDate(e))}</div></div>
+        <button class="link-btn" onclick="deletePersonalSchedule('${e.id}')">刪除</button>
+      </div>`).join('') : '<div class="empty-note">目前沒有個人行程</div>'}
+  </div>
+  `;
+}
+async function addPersonalSchedule(){
+  const titleEl = document.getElementById('personalTitleInput');
+  const dateEl = document.getElementById('personalDateInput');
+  const title = titleEl.value.trim();
+  if(!title) return;
+  DB.events.push({ id:uid('e'), title, startDate:dateEl.value||todayStr(), date:dateEl.value||todayStr(), endDate:'',
+    categoryId:'', relatedProjectId:'', templateId:'', type:'個人行程', location:'', info:'', time:'', notes:'',
+    academicYear:computeAcademicYear() });
+  await persist(); titleEl.value=''; renderMain(); toast('已新增');
+}
+async function deletePersonalSchedule(id){
+  if(!(await customConfirm('確定要刪除這筆個人行程嗎？'))) return;
+  DB.events = DB.events.filter(e=>e.id!==id);
+  await persist(); renderMain(); toast('已刪除');
 }
 
 /* ============================================================
@@ -888,7 +1255,7 @@ function renderCalendarGrid(){
   cells.forEach(d=>{
     if(d===null){ html += `<div class="cal-cell other"></div>`; return; }
     const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const evs = calShowMine ? DB.events.filter(e=>{ const s=eventDate(e), en=e.endDate||s; return dateStr>=s && dateStr<=en; }) : [];
+    const evs = calShowMine ? DB.events.filter(e=>{ if(e.type==='個人行程') return false; const s=eventDate(e), en=e.endDate||s; return dateStr>=s && dateStr<=en; }) : [];
     const ses = calShowSchool ? DB.schoolEvents.filter(e=>{ const en=e.endDate||e.startDate; return dateStr>=e.startDate && dateStr<=en; }) : [];
     const tks = DB.tasks.filter(x=>(x.dueDate===dateStr||x.scheduledDate===dateStr) && x.status!=='archived' && x.status!=='done');
     const hasConflict = evs.some(e=>checkConflicts(eventDate(e), e.endDate).length>0);
@@ -903,7 +1270,7 @@ function renderCalendarGrid(){
   wrap.innerHTML = html;
 }
 function showCalDay(dateStr){
-  const evs = DB.events.filter(e=>{ const s=eventDate(e), en=e.endDate||s; return dateStr>=s && dateStr<=en; });
+  const evs = DB.events.filter(e=>{ if(e.type==='個人行程') return false; const s=eventDate(e), en=e.endDate||s; return dateStr>=s && dateStr<=en; });
   const ses = DB.schoolEvents.filter(e=>{ const en=e.endDate||e.startDate; return dateStr>=e.startDate && dateStr<=en; });
   const tks = DB.tasks.filter(x=>(x.dueDate===dateStr||x.scheduledDate===dateStr) && x.status!=='archived');
   document.getElementById('calDayDetail').innerHTML = `
@@ -929,7 +1296,7 @@ function renderSemesterView(){
     const y = mDate.getFullYear(), m = mDate.getMonth();
     const monthStart = `${y}-${String(m+1).padStart(2,'0')}-01`;
     const monthEnd = `${y}-${String(m+1).padStart(2,'0')}-31`;
-    const evs = calShowMine ? DB.events.filter(e=>{ const s=eventDate(e); return s>=monthStart && s<=monthEnd; }) : [];
+    const evs = calShowMine ? DB.events.filter(e=>{ if(e.type==='個人行程') return false; const s=eventDate(e); return s>=monthStart && s<=monthEnd; }) : [];
     const ses = calShowSchool ? DB.schoolEvents.filter(e=>e.startDate>=monthStart && e.startDate<=monthEnd) : [];
     if(!evs.length && !ses.length) return '';
     const lines = [
@@ -944,21 +1311,26 @@ function renderSemesterView(){
 }
 async function deleteEvent(id){ DB.events = DB.events.filter(e=>e.id!==id); await persist(); closeModal(); renderMain(); }
 
-function openEventModal(id){
-  const e = id? DB.events.find(x=>x.id===id) : { id:'', title:'', startDate:todayStr(), endDate:'', categoryId:'', relatedProjectId:'', templateId:'', academicYear:computeAcademicYear() };
+function openEventModal(id, presetType){
+  const e = id? DB.events.find(x=>x.id===id) : { id:'', title:'', startDate:todayStr(), endDate:'', categoryId:'', relatedProjectId:'', templateId:'', type:presetType||'活動', location:'', info:'', time:'', notes:'', academicYear:computeAcademicYear() };
   const warns = e.startDate ? checkConflicts(e.startDate, e.endDate, e.id) : [];
   openModal(`
-    <h2>${id?'編輯活動':'新增活動'}</h2>
-    <div class="d-field"><label>活動名稱</label><input type="text" id="ev-title" value="${escapeHtml(e.title)}"></div>
+    <h2>${id?'編輯':'新增'}${e.type||'活動'}</h2>
+    <div class="d-field"><label>主題／名稱</label><input type="text" id="ev-title" value="${escapeHtml(e.title)}"></div>
     <div class="d-row2">
-      <div class="d-field"><label>開始日期</label><input type="date" id="ev-start" value="${e.startDate||e.date||todayStr()}" onchange="refreshConflictWarn()"></div>
-      <div class="d-field"><label>結束日期（可留空）</label><input type="date" id="ev-end" value="${e.endDate||''}" onchange="refreshConflictWarn()"></div>
-    </div>
-    <div id="ev-conflict-area">${conflictWarnHtml(warns)}</div>
-    <div class="d-row2">
+      <div class="d-field"><label>型態</label><select id="ev-type">${eventTypeOptionsHtml(e.type||'活動')}</select></div>
       <div class="d-field"><label>業務分類</label><select id="ev-cat">${catOptionsHtml(e.categoryId)}</select></div>
-      <div class="d-field"><label>學年度</label><input type="text" id="ev-year" value="${escapeHtml(e.academicYear||computeAcademicYear())}"></div>
     </div>
+    <div class="d-row2">
+      <div class="d-field"><label>日期</label><input type="date" id="ev-start" value="${e.startDate||e.date||todayStr()}" onchange="refreshConflictWarn()"></div>
+      <div class="d-field"><label>時間（可留空）</label><input type="text" id="ev-time" value="${escapeHtml(e.time||'')}" placeholder="例如 14:00"></div>
+    </div>
+    <div class="d-field"><label>結束日期（連續多天才需要填，可留空）</label><input type="date" id="ev-end" value="${e.endDate||''}" onchange="refreshConflictWarn()"></div>
+    <div id="ev-conflict-area">${conflictWarnHtml(warns)}</div>
+    <div class="d-field"><label>地點</label><input type="text" id="ev-loc" value="${escapeHtml(e.location||'')}"></div>
+    <div class="d-field"><label>相關資訊（可留空）</label><textarea id="ev-info">${escapeHtml(e.info||'')}</textarea></div>
+    <div class="d-field"><label>其他補充（可留空）</label><textarea id="ev-notes">${escapeHtml(e.notes||'')}</textarea></div>
+    <div class="d-field"><label>學年度</label><input type="text" id="ev-year" value="${escapeHtml(e.academicYear||computeAcademicYear())}"></div>
     <div class="d-field"><label>相關專案</label><select id="ev-proj"><option value="">無</option>${DB.projects.map(p=>`<option value="${p.id}" ${e.relatedProjectId===p.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></div>
     <div class="d-field"><label>對應準備範本（選填，系統會依此主動提醒準備）</label><select id="ev-tpl"><option value="">無</option>${DB.prepTemplates.map(tp=>`<option value="${tp.id}" ${e.templateId===tp.id?'selected':''}>${escapeHtml(tp.name)}</option>`).join('')}</select></div>
     <div class="modal-actions">
@@ -985,6 +1357,9 @@ async function saveEventModal(id){
   const data = {
     title, startDate: document.getElementById('ev-start').value, endDate: document.getElementById('ev-end').value,
     date: document.getElementById('ev-start').value, categoryId: document.getElementById('ev-cat').value,
+    type: document.getElementById('ev-type').value, time: document.getElementById('ev-time').value,
+    location: document.getElementById('ev-loc').value, info: document.getElementById('ev-info').value,
+    notes: document.getElementById('ev-notes').value,
     academicYear: document.getElementById('ev-year').value, relatedProjectId: document.getElementById('ev-proj').value,
     templateId: document.getElementById('ev-tpl').value
   };
@@ -1246,10 +1621,12 @@ async function completeReview(){
 let settingsTab = 'categories';
 function viewSettings(){
   return `
-  <div class="page-title">Settings</div>
-  <div class="page-sub">分類、自動化規則與資料備份都收在這裡</div>
+  <div class="page-title">後臺設定資料</div>
+  <div class="page-sub">分類、自動化規則、專案、成果與備份都收在這裡</div>
   <div class="segmented">
     <button class="${settingsTab==='categories'?'active':''}" onclick="settingsTab='categories';renderMain()">分類</button>
+    <button class="${settingsTab==='projects'?'active':''}" onclick="settingsTab='projects';renderMain()">專案</button>
+    <button class="${settingsTab==='library'?'active':''}" onclick="settingsTab='library';renderMain()">成果／舊會議紀錄</button>
     <button class="${settingsTab==='automation'?'active':''}" onclick="settingsTab='automation';renderMain()">Automation</button>
     <button class="${settingsTab==='school'?'active':''}" onclick="settingsTab='school';renderMain()">學校行事曆</button>
     <button class="${settingsTab==='data'?'active':''}" onclick="settingsTab='data';renderMain()">資料</button>
@@ -1257,6 +1634,8 @@ function viewSettings(){
   </div>
   <div style="margin-top:20px;">
     ${settingsTab==='categories'? settingsCategories() : ''}
+    ${settingsTab==='projects'? viewProjects() : ''}
+    ${settingsTab==='library'? viewLibrary() : ''}
     ${settingsTab==='automation'? settingsAutomation() : ''}
     ${settingsTab==='school'? settingsSchoolCalendar() : ''}
     ${settingsTab==='data'? settingsData() : ''}
@@ -1582,10 +1961,17 @@ function doSearchWith(qRaw){
 ============================================================ */
 function openTaskDrawer(id, opts={}){
   const t = DB.tasks.find(x=>x.id===id); if(!t) return;
+  const tags = t.tags || [];
   openDrawer(`
     <button class="drawer-close" onclick="closeDrawer()">×</button>
     <h2>${opts.inboxSort? '整理工作' : '工作內容'}</h2>
     <div class="d-field"><label>工作名稱</label><input type="text" id="tk-title" value="${escapeHtml(t.title)}"></div>
+
+    <div class="d-field"><label>標籤</label>
+      <div class="tag-checks">
+        ${TASK_TAGS.map(tag=>`<label class="tag-check-item"><input type="checkbox" value="${tag}" ${tags.includes(tag)?'checked':''}> ${tag}</label>`).join('')}
+      </div>
+    </div>
 
     <div class="d-section-label">分類與去向</div>
     <div class="d-row2">
@@ -1618,6 +2004,7 @@ function openTaskDrawer(id, opts={}){
 
     <div class="d-section-label">備註</div>
     <div class="d-field"><textarea id="tk-notes" placeholder="備註／成果">${escapeHtml(t.notes||'')}</textarea></div>
+    <div class="d-field"><label>相關檔案連結（例如 Google Drive 連結，每行一個；系統沒有真正的檔案上傳空間，用連結的方式附加）</label><textarea id="tk-attach" placeholder="貼上連結，一行一個">${escapeHtml(t.attachments||'')}</textarea></div>
 
     <div class="drawer-actions">
       <button class="btn danger" onclick="deleteTask('${t.id}')">刪除</button>
@@ -1632,12 +2019,14 @@ async function saveTaskDrawer(id){
   const idx = DB.tasks.findIndex(x=>x.id===id);
   if(idx<0) return;
   const t = DB.tasks[idx];
+  const tags = Array.from(document.querySelectorAll('.tag-check-item input:checked')).map(el=>el.value);
   const data = {
     title, categoryId: document.getElementById('tk-cat').value, projectId: document.getElementById('tk-proj').value,
     eventId: document.getElementById('tk-event').value,
     status, priority: document.getElementById('tk-prio').value,
     scheduledDate: document.getElementById('tk-sched').value, dueDate: document.getElementById('tk-due').value,
     nextAction: document.getElementById('tk-next').value, notes: document.getElementById('tk-notes').value,
+    attachments: document.getElementById('tk-attach').value, tags: tags,
     waitingFor: document.getElementById('tk-wfor').value, waitingWhat: document.getElementById('tk-wwhat').value,
     waitingFollowUp: document.getElementById('tk-wfollow').value,
     completedDate: status==='done' ? (t.completedDate||todayStr()) : t.completedDate
@@ -1778,6 +2167,7 @@ async function bootApp(){
   if(DB === null){ renderConnectionErrorScreen(); return; }
   renderNav();
   renderMain();
+  startPolling();
 }
 
 /* ============================================================
