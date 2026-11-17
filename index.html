@@ -775,7 +775,7 @@ function todoCardHtml(t, opts={}){
     </div>
     ${tagsHtml}
     ${metaText? `<div class="todo-row-meta ${metaCls}">${metaText}</div>`:''}
-    ${t.status!=='done' ? `<div class="todo-drag-handle" title="按住拖曳排序" onpointerdown="startTodoDrag(event,'${t.id}')">⠿⠿</div>` : ''}
+    ${(t.status!=='done' && !opts.noDrag) ? `<div class="todo-drag-handle" title="按住拖曳排序" onpointerdown="startTodoDrag(event,'${t.id}')">⠿⠿</div>` : ''}
   </div>`;
 }
 
@@ -917,34 +917,103 @@ function tagClass(tag){
   return map[tag] || 'other';
 }
 let taskCatFilter = '全部';
+let taskViewMode = 'cat';   // 'cat' = 依分類看；'list' = 全部清單
+const AUTO_CAT_KEYWORDS = {
+  '高中優質化':['優質化','公優','免招標','計畫書','經費'],
+  '閱讀推廣':['閱讀','推廣','書展','好書','讀書','借閱','共讀'],
+  '自主學習':['自主學習','自主'],
+  '會議':['會議','董事會','主管','校務'],
+  '學校事務':['公文','校史','校慶','特刊','週年','回條','邀請函','簽','核銷','研習時數','成果'],
+  '圖書館事務':['圖書','盤點','財產','採購','書籍','館藏','編目','整架','志工','陶瓷']
+};
+function autoCategorizeTasks(){
+  const nameToId = {}; activeCategories().forEach(c=>{ nameToId[c.name]=c.id; });
+  let n=0;
+  DB.tasks.forEach(t=>{
+    if(t.status==='done'||t.status==='archived'||t.categoryId) return;
+    const text = (t.title||'')+(t.notes||'');
+    for(const [cat,kws] of Object.entries(AUTO_CAT_KEYWORDS)){
+      if(nameToId[cat] && kws.some(k=>text.includes(k))){ t.categoryId=nameToId[cat]; n++; break; }
+    }
+  });
+  if(n){ persist(); }
+  toast(n? `已自動分類 ${n} 件，沒歸到的請點開手動選` : '沒有可以自動判斷的項目，請點開手動選分類');
+  renderMain();
+}
+function taskSortKey(t){
+  const over = isOverdue(t) ? 0 : 1;
+  return over + '|' + (t.dueDate||t.scheduledDate||'9999-99-99');
+}
+function catGroupHtml(title, catId, tasks, events){
+  const over = tasks.filter(isOverdue).length;
+  const wait = tasks.filter(t=>t.status==='waiting').length;
+  const sorted = tasks.slice().sort((a,b)=>taskSortKey(a).localeCompare(taskSortKey(b)));
+  const evHtml = events.length ? events.map(e=>`<div class="todo-list-row readonly" onclick="switchTab('events')"><div class="todo-row-main"><div class="todo-row-title">📌 ${escapeHtml(e.title)}</div><div class="todo-row-sub">${escapeHtml(e.type||'行程')}</div></div><div class="todo-row-meta">${fmtDate(eventDate(e))}</div></div>`).join('') : '';
+  return `
+  <div class="section-label" style="margin-top:26px;">${escapeHtml(title)}
+    <span style="font-weight:400;font-size:11px;color:var(--ink-faint);">${tasks.length} 件待辦${over?` · <span style="color:#b3472f;">${over} 逾期</span>`:''}${wait?` · ${wait} 等待中`:''}${events.length?` · ${events.length} 場行程`:''}</span>
+    ${catId==='__none'&&tasks.length?`<button class="btn" style="margin-left:auto;" onclick="autoCategorizeTasks()">自動分類</button>`:''}
+  </div>
+  <div class="todo-list">
+    ${sorted.length? sorted.map(x=>todoCardHtml(x,{noDrag:true})).join('') : '<div class="empty-note">目前沒有待辦</div>'}
+    ${evHtml}
+  </div>`;
+}
 function viewTasks(){
-  let active = activeTasks().filter(t=>t.status!=='done');
-  let done = activeTasks().filter(t=>t.status==='done');
-  if(taskCatFilter!=='全部'){
-    active = active.filter(t=>t.categoryId===taskCatFilter);
-    done = done.filter(t=>t.categoryId===taskCatFilter);
+  const openAll = activeTasks().filter(t=>t.status!=='done');
+  const doneAll = activeTasks().filter(t=>t.status==='done');
+  const today = todayStr();
+  const futureEvents = DB.events.filter(e=> (e.endDate||eventDate(e)||'') >= today);
+  const cats = activeCategories();
+  const catIds = new Set(cats.map(c=>c.id));
+  const isNone = t => !t.categoryId || !catIds.has(t.categoryId);
+  const modeBar = `
+  <div class="segmented">
+    <button class="${taskViewMode==='cat'?'active':''}" onclick="taskViewMode='cat';renderMain()">依分類看</button>
+    <button class="${taskViewMode==='list'?'active':''}" onclick="taskViewMode='list';renderMain()">全部清單</button>
+  </div>`;
+
+  if(taskViewMode==='cat'){
+    const noneTasks = openAll.filter(isNone);
+    const tabs = [{id:'全部',name:'全部',n:openAll.length}]
+      .concat(cats.map(c=>({id:c.id,name:c.name,n:openAll.filter(t=>t.categoryId===c.id).length})))
+      .concat(noneTasks.length?[{id:'__none',name:'未分類',n:noneTasks.length}]:[]);
+    if(!tabs.some(x=>x.id===taskCatFilter)) taskCatFilter='全部';
+    const tabBar = `<div class="segmented" style="margin-top:6px;">${tabs.map(x=>`<button class="${taskCatFilter===x.id?'active':''}" onclick="taskCatFilter='${x.id}';renderMain()">${escapeHtml(x.name)} <span style="font-size:11px;color:var(--ink-faint);">${x.n}</span></button>`).join('')}</div>`;
+    const groups = [];
+    cats.forEach(c=>{
+      if(taskCatFilter!=='全部' && taskCatFilter!==c.id) return;
+      const ts = openAll.filter(t=>t.categoryId===c.id);
+      const evs = futureEvents.filter(e=>e.categoryId===c.id).sort((a,b)=>eventDate(a).localeCompare(eventDate(b)));
+      if(taskCatFilter==='全部' && !ts.length && !evs.length) return;
+      groups.push(catGroupHtml(c.name,c.id,ts,evs));
+    });
+    if(taskCatFilter==='全部'||taskCatFilter==='__none'){
+      const evs = futureEvents.filter(e=>!e.categoryId||!catIds.has(e.categoryId));
+      if(noneTasks.length||(taskCatFilter==='__none'&&evs.length)) groups.push(catGroupHtml('未分類','__none',noneTasks,taskCatFilter==='__none'?evs:[]));
+    }
+    return `
+    <div class="page-title">待辦事項</div>
+    <div class="page-sub">${openAll.length} 件待處理，依業務分類整理</div>
+    <div class="toolbar-line"><div class="spacer"></div><button class="btn primary" onclick="openQuickAdd()">＋ 新增</button></div>
+    ${modeBar}${tabBar}
+    ${groups.length? groups.join('') : '<div class="empty-note" style="margin-top:20px;">這個分類目前沒有待辦</div>'}
+    <div class="section-label" style="margin-top:34px;">已完成 <span style="font-weight:400;font-size:11px;color:var(--ink-faint);">${doneAll.length} 件，到「全部清單」查看</span></div>`;
   }
+
+  let active = openAll, done = doneAll;
   const activeSorted = sortTodayList(active);
   window.__todayOrderIds = activeSorted.map(x=>x.id);
   done = done.slice().sort((a,b)=>(b.completedDate||'').localeCompare(a.completedDate||''));
-
   return `
   <div class="page-title">待辦事項</div>
   <div class="page-sub">${active.length} 件待處理、${done.length} 件已完成</div>
-  <div class="toolbar-line">
-    <select class="filter" onchange="taskCatFilter=this.value;renderMain()">
-      <option value="全部" ${taskCatFilter==='全部'?'selected':''}>全部分類</option>
-      ${activeCategories().map(c=>`<option value="${c.id}" ${taskCatFilter===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}
-    </select>
-    <div class="spacer"></div>
-    <button class="btn primary" onclick="openQuickAdd()">＋ 新增</button>
-  </div>
-
+  <div class="toolbar-line"><div class="spacer"></div><button class="btn primary" onclick="openQuickAdd()">＋ 新增</button></div>
+  ${modeBar}
   <div class="section-label">待辦區 <span style="font-weight:400;font-size:11px;color:var(--ink-faint);margin-left:6px;">用卡片上的 ▲▼ 調整優先順序</span></div>
   <div class="todo-list">
     ${activeSorted.length? activeSorted.map(x=>todoCardHtml(x)).join('') : '<div class="empty-note">沒有待辦事項，按右下角「＋新增工作」開始記錄</div>'}
   </div>
-
   <div class="section-label">完成區 <span style="font-weight:400;font-size:11px;color:var(--ink-faint);margin-left:6px;">點勾選框可以移回待辦區</span></div>
   <div class="todo-list">
     ${done.length? done.map(x=>todoCardHtml(x)).join('') : '<div class="empty-note">還沒有完成的項目</div>'}
