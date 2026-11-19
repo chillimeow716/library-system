@@ -513,7 +513,8 @@ function pgCat(){
   if(area === 'personal' && c.name === '運動紀錄') return pgExercise(back);
   if(area === 'personal' && c.name === '金錢管理') return hdr('金錢管理', back) + `<div class="card"><b>🔒 需要密碼才能看</b>
     <p style="font-size:14px;color:var(--ink2)">收入、股市持股會在第 3 階段開通。到時候密碼設在 Apps Script，由後端檢查正確後才把資料傳給網頁，網頁本身不存任何金額。</p></div>`;
-  const isHQ = area === 'work' && c.name === '高中優質化';
+  if(area === 'work' && c.name === '經費') return hdr('經費', back) + budgetView();
+  const isHQ = false; // 經費已獨立成「經費」分類
   const tab = isHQ ? (S.tab || 'main') : 'main';
   const extra = `<button class="hbtn" data-act="newTask" data-cat="${c.id}">＋ 待辦</button><button class="hbtn" data-act="newEvent" data-cat="${c.id}">＋ 行程</button>`;
   let html = hdr(c.name, Object.assign({ extra }, back));
@@ -548,39 +549,34 @@ function planCard(p){
   <div style="margin-top:6px;display:flex;gap:6px"><button class="btn sm" data-act="newTask" data-cat="${p.categoryId}" data-plan="${p.id}">＋ 待辦</button>${p.log.length ? `<span class="ld" style="padding-top:3px">最新筆記：${fmt(p.log[0].date)} ${h(p.log[0].text)}</span>` : ''}</div></div>`;
 }
 
-/* ---------- 經費（高中優質化） ---------- */
+/* ---------- 經費（讀經費試算表，唯讀） ---------- */
 function budgetView(){
-  const B = DB.budget, E = B.expenses;
-  const used = (code, c) => E.filter(x => x.code === code && (c === undefined || x.cat === c)).reduce((s, x) => s + (+x.amount || 0), 0);
-  let html = `<p class="hint">目前是手動記錄。第 4 階段會改成直接讀你的經費試算表，不用重新輸入。</p>
-  <div class="sec">經費總表<span class="sp"></span><button class="btn sm" data-act="newExp">＋ 支出</button><button class="btn sm" data-act="newLine">＋ 計畫經費</button></div>
-  <div class="tw"><table><tr><th>計畫</th><th class="num">核定</th><th class="num">已用</th><th class="num">剩餘</th><th class="num">執行率</th></tr>`;
+  const B = DB.budget || {}, E = B.expenses || [], Ls = B.lines || [];
+  if(B.source !== 'sheet') return '<div class="empty">經費資料還沒從試算表同步過來，約 10 分鐘內會自動同步。</div>';
+  const usedOf = it => (+it.amount || 0) - (+it.remaining || 0);
+  const sync = B.syncedAt ? new Date(B.syncedAt).toLocaleString('zh-TW', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
+  let html = `<p class="hint">資料來源：經費試算表「${h(B.term || '')}」，剩餘由試算表公式計算，每 10 分鐘同步一次${sync ? '（上次 ' + sync + '）' : ''}。要修改請改試算表，或在 LINE 說「A-2-2 雜支支出 500」。</p>
+  <div style="margin:-4px 0 10px"><a class="btn sm" href="https://docs.google.com/spreadsheets/d/${h(B.sheetId || '')}/edit" target="_blank" rel="noopener">開啟經費試算表</a></div>
+  <div class="sec">經費總表</div><div class="tw"><table><tr><th>計畫</th><th class="num">核定</th><th class="num">已用</th><th class="num">剩餘</th><th class="num">執行率</th></tr>`;
   let ta = 0, tu = 0;
-  B.lines.forEach(l => { const u = used(l.code), r = (+l.approved || 0) - u; ta += +l.approved || 0; tu += u;
-    html += `<tr data-act="editLine" data-id="${l.id}" style="cursor:pointer"><td>${h(l.code)}${l.name ? ` <span class="ld">${h(l.name)}</span>` : ''}</td><td class="num">${money(l.approved)}</td><td class="num">${money(u)}</td><td class="num ${r < 0 ? 'over' : ''}">${money(r)}</td><td class="num">${+l.approved ? Math.round(u / l.approved * 100) + '%' : '—'}</td></tr>`; });
+  Ls.forEach(l => { const u = (l.items || []).reduce((s, it) => s + usedOf(it), 0), a = +l.approved || 0; ta += a; tu += u;
+    html += `<tr><td>${h(l.code)}${l.name ? ` <span class="ld">${h(l.name)}</span>` : ''}</td><td class="num">${money(a)}</td><td class="num">${money(u)}</td><td class="num ${a - u < 0 ? 'over' : ''}">${money(a - u)}</td><td class="num">${a ? Math.round(u / a * 100) + '%' : '—'}</td></tr>`; });
   html += `<tr><th>合計</th><th class="num">${money(ta)}</th><th class="num">${money(tu)}</th><th class="num ${ta - tu < 0 ? 'over' : ''}">${money(ta - tu)}</th><th class="num">${ta ? Math.round(tu / ta * 100) + '%' : '—'}</th></tr></table></div>`;
-
   html += `<div class="sec">概算表</div>`;
-  B.lines.forEach(l => {
-    const rows = (l.items || []).map(it => ({ c: it.cat, p: +it.amount || 0 }));
-    E.filter(x => x.code === l.code).forEach(x => { const c = x.cat || '未填類別'; if(!rows.find(r => r.c === c)) rows.push({ c, p:0 }); });
-    html += `<div class="card"><div class="ch" data-act="editLine" data-id="${l.id}"><b>${h(l.code)}</b><span class="ld">編輯</span></div>` +
-      (rows.length ? `<div class="tw"><table><tr><th>經費類別</th><th class="num">概算</th><th class="num">已用</th><th class="num">剩餘</th></tr>${rows.map(r => { const u = used(l.code, r.c === '未填類別' ? '' : r.c); const o = u > r.p;
-        return `<tr><td>${h(r.c)}</td><td class="num">${money(r.p)}</td><td class="num ${o ? 'over' : ''}">${money(u)}</td><td class="num ${o ? 'over' : ''}">${money(r.p - u)}</td></tr>`; }).join('')}</table></div>` : '<div class="empty">還沒有概算項目，點「編輯」加入。</div>') + `</div>`;
+  Ls.forEach(l => {
+    const rows = (l.items || []).filter(it => +it.amount || +it.remaining);
+    html += `<div class="card"><div class="ch"><b>${h(l.code)}</b><span class="ld">${h(l.name || '')}</span></div>` +
+      (rows.length ? `<div class="tw"><table><tr><th>經費類別</th><th class="num">核定</th><th class="num">已用</th><th class="num">剩餘</th></tr>${rows.map(it => { const o = (+it.remaining || 0) < 0;
+        return `<tr${it.status ? ` title="${h(it.status)}"` : ''}><td>${h(it.cat)}</td><td class="num">${money(it.amount)}</td><td class="num ${o ? 'over' : ''}">${money(usedOf(it))}</td><td class="num ${o ? 'over' : ''}">${money(it.remaining)}</td></tr>`; }).join('')}</table></div>` : '<div class="empty">沒有概算項目。</div>') + `</div>`;
   });
-
   const adv = E.filter(x => ADV.includes(x.adv));
-  html += `<div class="sec">代墊追蹤 <span class="n">${adv.length}</span></div><div class="kan">${ADV.map(s => { const L = adv.filter(x => x.adv === s);
-    return `<div class="col"><h4>${s} <span class="ld">${L.length} 筆 · ${money(L.reduce((a, x) => a + (+x.amount || 0), 0))}</span></h4>${L.map(x =>
-      `<div class="kc" data-act="editExp" data-id="${x.id}"><div>${h(x.desc || x.cat || '支出')} <b>${money(x.amount)}</b></div><div class="ld">${h(x.code)}${x.advBy ? ' · ' + h(x.advBy) + '代墊' : ''}${x.invoice === 'no' ? ' · <span class="late">發票尚未</span>' : ''}${x.date ? ' · ' + fmt(x.date) : ''}</div></div>`).join('') || '<div class="ld">（無）</div>'}</div>`; }).join('')}</div>`;
-
-  html += `<div class="sec">其他經費來源<span class="sp"></span><button class="btn sm" data-act="newFund">＋ 經費來源</button></div><div class="tw"><table><tr><th>名稱</th><th class="num">金額</th><th class="num">已用</th><th class="num">剩餘</th></tr>`;
-  B.otherFunds.forEach(f => { const u = used(f.name); html += `<tr data-act="editFund" data-id="${f.id}" style="cursor:pointer"><td>${h(f.name)}${f.note ? ` <span class="ld">${h(f.note)}</span>` : ''}</td><td class="num">${money(f.amount)}</td><td class="num">${money(u)}</td><td class="num ${f.amount - u < 0 ? 'over' : ''}">${money(f.amount - u)}</td></tr>`; });
-  html += `</table></div>`;
-
+  html += `<div class="sec">代墊追蹤 <span class="n">${adv.filter(x => x.adv !== '已收款').length} 筆未收款</span></div><p class="hint">收到款項請在試算表「收到款項」欄打 💰。</p><div class="kan">${ADV.map(st => { const L = adv.filter(x => x.adv === st);
+    return `<div class="col"><h4>${st} <span class="ld">${L.length} 筆 · ${money(L.reduce((a, x) => a + (+x.paid || 0), 0))}</span></h4>${(st === '已收款' ? L.slice(-8) : L).map(x =>
+      `<div class="kc"><div>${h(x.desc || x.cat || '支出')} <b>${money(x.paid)}</b></div><div class="ld">${h(x.code)}${x.cat ? ' · ' + h(x.cat) : ''}${x.advBy ? ' · ' + h(x.advBy) + '代墊' : ''}${x.invoice === 'no' ? ' · <span class="late">發票尚未</span>' : ''}${x.sent ? ' · ' + h(x.sent) + ' 送出' : ''}</div></div>`).join('') || '<div class="ld">（無）</div>'}${st === '已收款' && L.length > 8 ? `<div class="ld">只顯示最近 8 筆</div>` : ''}</div>`; }).join('')}</div>`;
+  html += `<div class="sec">其他經費來源</div>` + (B.otherFunds || []).map(f => `<div class="card"><div class="ch"><b>${h(f.name)}</b><span class="ld">總額 ${money(f.amount)}${f.note ? ' · ' + h(f.note) : ''}</span></div>${(f.rows || []).map(r => `<div class="ld" style="padding:2px 0">${h(r)}</div>`).join('')}</div>`).join('');
   const recent = E.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 30);
-  html += `<div class="sec">最近支出 <span class="n">${E.length}</span></div>` + (recent.map(x =>
-    `<div class="row" data-act="editExp" data-id="${x.id}"><div class="body"><div class="t">${h(x.desc || x.cat || '支出')}</div><div class="meta">${tag(x.code, 1)}${x.cat ? h(x.cat) : ''}${x.date ? ' · ' + fmt(x.date) : ''}${ADV.includes(x.adv) ? ' · 代墊：' + h(x.adv) : ''}</div></div><b class="num">${money(x.amount)}</b></div>`).join('') || '<div class="empty">還沒有支出紀錄。</div>');
+  html += `<div class="sec">最近支出 <span class="n">${E.length}</span></div>` + recent.map(x =>
+    `<div class="row static"><div class="body"><div class="t">${h(x.desc || x.cat || '支出')}</div><div class="meta">${tag(x.code, 1)}${x.cat ? h(x.cat) : '<span class="late">未填類別</span>'}${x.date ? ' · ' + fmt(x.date) : ''}${x.paid !== x.amount ? ' · 實付 ' + money(x.paid) : ''}</div></div><b class="num">${money(x.amount)}</b></div>`).join('');
   return html;
 }
 
