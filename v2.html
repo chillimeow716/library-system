@@ -125,6 +125,13 @@ th{color:var(--ink2);font-weight:500}
 .kc{background:#fff;border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:13px;margin-bottom:6px;cursor:pointer}
 .note-text{white-space:pre-wrap;word-break:break-word}
 .hint{font-size:12px;color:var(--ink3);margin:8px 0}
+/* 自己排序 */
+.row .grip{display:none;color:#c7c6c4;cursor:grab;padding-top:1px;font-size:14px;letter-spacing:-3px;user-select:none;flex-shrink:0}
+.row .mv{display:none;flex-direction:column;gap:3px;flex-shrink:0}
+.row .mv button{width:26px;height:20px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink2);font-size:10px;line-height:1;padding:0}
+.sortl .row.dragging{opacity:.4}
+@media(hover:hover) and (pointer:fine){.sortl .row .grip{display:block}}
+@media(hover:none),(pointer:coarse){.sortl .row .mv{display:flex}}
 @media(min-width:600px){.kan{grid-template-columns:repeat(3,1fr)}.stats{grid-template-columns:repeat(4,1fr)}}
 @media(min-width:900px){
  .bnav{display:none}
@@ -248,6 +255,23 @@ async function saveNow(){
   catch(e){ toast('⚠ 儲存失敗：' + e.message); }
 }
 function save(){ clearTimeout(saveT); saveT = setTimeout(saveNow, 400); }
+
+/* ---------- 自己排序：電腦拖曳、手機 ▲▼ ---------- */
+const FINE = matchMedia('(hover:hover) and (pointer:fine)').matches;
+const byOrd = (a, b) => { const ao = typeof a.order === 'number', bo = typeof b.order === 'number';
+  if(ao && bo) return a.order - b.order; if(ao !== bo) return ao ? -1 : 1;
+  return (a.dueDate || '9').localeCompare(b.dueDate || '9'); };
+const sortList = (arr, opt) => `<div class="sortl">${arr.map(t => taskRow(t, Object.assign({ sort:true }, opt || {}))).join('')}</div>`;
+function applyOrder(wrap){ [...wrap.children].filter(r => r.classList.contains('row')).forEach((r, i) => { const t = DB.tasks.find(x => x.id === r.dataset.id); if(t) t.order = i + 1; }); save(); render(); }
+function moveTask(id, dir){ const r = document.querySelector('.sortl > .row[data-id="' + id + '"]'); if(!r) return;
+  const sib = dir < 0 ? r.previousElementSibling : r.nextElementSibling; if(!sib) return;
+  if(dir < 0) r.parentNode.insertBefore(r, sib); else r.parentNode.insertBefore(sib, r); applyOrder(r.parentNode); }
+let dragEl = null;
+document.addEventListener('dragstart', e => { const r = e.target.closest && e.target.closest('.sortl > .row'); if(!r) return; dragEl = r; r.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', r.dataset.id); });
+document.addEventListener('dragover', e => { if(!dragEl) return; e.preventDefault(); const r = e.target.closest && e.target.closest('.sortl > .row'); if(!r || r === dragEl || r.parentNode !== dragEl.parentNode) return;
+  const b = r.getBoundingClientRect(); r.parentNode.insertBefore(dragEl, (e.clientY - b.top) > b.height / 2 ? r.nextSibling : r); });
+document.addEventListener('drop', e => { if(dragEl) e.preventDefault(); });
+document.addEventListener('dragend', () => { if(!dragEl) return; const w = dragEl.parentNode; dragEl.classList.remove('dragging'); dragEl = null; applyOrder(w); });
 
 /* ---------- 資料 ---------- */
 function seed(){
@@ -384,7 +408,7 @@ function taskRow(t, opt){
   if(t.nature && t.nature !== 'single') meta.push(NATURES[t.nature]);
   if(p) meta.push('📁 ' + h(p.name));
   if(done && t.completedDate) meta.push(`${fmt(t.completedDate)} 完成`);
-  return `<div class="row ${done ? 'done' : ''}" data-act="editTask" data-id="${t.id}"><button class="chk ${done ? 'on' : ''}" data-act="toggleTask" data-id="${t.id}" aria-label="完成"></button><div class="body"><div class="t">${h(t.title)}</div>${meta.length ? `<div class="meta">${meta.join('')}</div>` : ''}</div>${DEL_BTN('task', t.id)}</div>`;
+  return `<div class="row ${done ? 'done' : ''}" data-act="editTask" data-id="${t.id}"${opt.sort && FINE ? ' draggable="true"' : ''}>${opt.sort ? '<span class="grip" data-act="noop" title="拖曳排序">⋮⋮</span>' : ''}<button class="chk ${done ? 'on' : ''}" data-act="toggleTask" data-id="${t.id}" aria-label="完成"></button><div class="body"><div class="t">${h(t.title)}</div>${meta.length ? `<div class="meta">${meta.join('')}</div>` : ''}</div>${opt.sort ? `<span class="mv"><button data-act="mvUp" data-id="${t.id}" aria-label="上移">▲</button><button data-act="mvDn" data-id="${t.id}" aria-label="下移">▼</button></span>` : ''}${DEL_BTN('task', t.id)}</div>`;
 }
 function evMeta(e, showRange){
   const m = [];
@@ -426,7 +450,7 @@ function dayLabel(d){ const n = diff(d); return fmtW(d) + (n === 0 ? ' 今天' :
 function pgTodo(){
   const f = S.todoF;
   const T = DB.tasks.filter(t => t.status !== 'done' && (f === 'all' || t.area === f));
-  const by = (a, b) => (a.dueDate || '9').localeCompare(b.dueDate || '9');
+  const by = (a, b) => (a.dueDate || '9').localeCompare(b.dueDate || '9') || byOrd(a, b);
   const wait = T.filter(t => t.status === 'waiting').sort(by);
   const rest = T.filter(t => t.status !== 'waiting');
   const g = { late:[], today:[], week:[], later:[], none:[] };
@@ -502,9 +526,9 @@ function pgCat(){
     html += plans.map(planCard).join('') || '<div class="empty">還沒有計畫。大計畫（例如有里程碑的專案）可以放這裡。</div>';
   }
   const T = DB.tasks.filter(t => t.area === area && inCat(t, c));
-  const open = T.filter(t => t.status !== 'done' && !t.planId).sort((a, b) => (a.dueDate || '9').localeCompare(b.dueDate || '9'));
+  const open = T.filter(t => t.status !== 'done' && !t.planId).sort(byOrd);
   const done = T.filter(t => t.status === 'done').sort((a, b) => (b.completedDate || '').localeCompare(a.completedDate || ''));
-  html += `<div class="sec">待辦 <span class="n">${open.length}</span></div>` + (open.map(t => taskRow(t, { noCat:true })).join('') || '<div class="empty">沒有待辦。</div>');
+  html += `<div class="sec">待辦 <span class="n">${open.length}</span></div>` + (open.length ? sortList(open, { noCat:true }) : '<div class="empty">沒有待辦。</div>');
   const E = DB.events.filter(e => e.area === area && inCat(e, c)).sort((a, b) => a.startDate.localeCompare(b.startDate));
   const up = E.filter(e => evEnd(e) >= today());
   html += `<div class="sec">接下來的行程 <span class="n">${up.length}</span></div>` +
@@ -516,11 +540,11 @@ function pgCat(){
 }
 function planCard(p){
   const T = DB.tasks.filter(t => t.planId === p.id);
-  const open = T.filter(t => t.status !== 'done');
+  const open = T.filter(t => t.status !== 'done').sort(byOrd);
   const nd = p.milestones.filter(m => !m.done).length;
   return `<div class="card"><div class="ch" data-act="editPlan" data-id="${p.id}"><b>📁 ${h(p.name)}</b>${tag(p.role, p.role === '承辦' ? 4 : 1)}<span class="ld">${open.length} 件待辦${p.milestones.length ? ` · 里程碑 ${p.milestones.length - nd}/${p.milestones.length}` : ''}</span>${DEL_BTN('plan', p.id)}</div>
   ${p.milestones.map((m, i) => `<div class="ms ${m.done ? 'done' : ''}"><button class="chk ${m.done ? 'on' : ''}" data-act="toggleMs" data-id="${p.id}" data-i="${i}"></button><div style="flex:1"><span class="t">${h(m.title)}</span>${m.mode === 'remind' ? ' <span class="ld">只提醒</span>' : ''}</div><span class="md ${!m.done && m.date && diff(m.date) < 0 ? 'late' : ''}">${m.date ? fmtW(m.date) : '日期未定'}</span><button class="del" data-act="delMsQuick" data-id="${p.id}" data-i="${i}" aria-label="刪除" title="刪除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button></div>`).join('')}
-  ${open.map(t => taskRow(t, { noCat:true })).join('')}
+  ${sortList(open, { noCat:true })}
   <div style="margin-top:6px;display:flex;gap:6px"><button class="btn sm" data-act="newTask" data-cat="${p.categoryId}" data-plan="${p.id}">＋ 待辦</button>${p.log.length ? `<span class="ld" style="padding-top:3px">最新筆記：${fmt(p.log[0].date)} ${h(p.log[0].text)}</span>` : ''}</div></div>`;
 }
 
@@ -803,6 +827,9 @@ function parseQuick(s){
 function go(p){ if(p === 'notes' && S.page !== 'notes') S.prev = S.page; S.page = p; S.cat = null; S.tab = ''; S.showDone = false; render(); window.scrollTo(0, 0); }
 const A = {
   go: d => go(d.p),
+  mvUp: d => moveTask(d.id, -1),
+  mvDn: d => moveTask(d.id, 1),
+  noop: () => {},
   goPrev: () => go(S.prev || 'todo'),
   openCat: d => { const c = cat(d.id); if(c) S.page = c.area; else if(d.id.startsWith('__none_')) S.page = d.id.slice(7); S.cat = d.id; S.tab = ''; S.showDone = false; render(); window.scrollTo(0, 0); },
   backCat: () => { S.cat = null; S.showDone = false; render(); window.scrollTo(0, 0); },
