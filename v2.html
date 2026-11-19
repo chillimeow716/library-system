@@ -106,7 +106,12 @@ th{color:var(--ink2);font-weight:500}
 .log .li{font-size:13px;margin-bottom:5px;word-break:break-word}
 .ld{font-size:11px;color:var(--ink3)}
 .toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + 20px);transform:translateX(-50%);background:var(--ink);color:#fff;padding:7px 14px;border-radius:6px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:60}
-.toast.show{opacity:1}
+.toast.show{opacity:1;pointer-events:auto}
+.toast button{color:#9cc7f5;margin-left:12px;font-weight:600}
+.del{flex-shrink:0;color:var(--ink3);padding:2px 4px;margin-top:1px;border-radius:4px;line-height:0}
+.del:hover{color:var(--red);background:var(--hover)}
+.del svg{width:17px;height:17px}
+.wk .del{display:none}
 .center{max-width:440px;margin:12vh auto;padding:20px}
 .ms{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-top:1px dashed var(--line);font-size:14px}
 .ms .md{color:var(--ink2);font-size:12px;white-space:nowrap;padding-top:2px}
@@ -213,7 +218,8 @@ const fmtW = s => `${fmt(s)}（${WD[toD(s).getDay()]}）`;
 const weekStart = s => { const d = toD(s); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return ymd(d); };
 const money = n => (Math.round(+n || 0)).toLocaleString('zh-TW');
 const clone = o => JSON.parse(JSON.stringify(o));
-function toast(m){ const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 1900); }
+function toast(m, undo){ const t = $('#toast'); t.innerHTML = h(m) + (undo ? '<button data-act="undoDel">復原</button>' : ''); t.classList.add('show'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), undo ? 5000 : 1900); }
+const DEL_BTN = (kind, id) => `<button class="del" data-act="quickDel" data-kind="${kind}" data-id="${id}" aria-label="刪除" title="刪除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>`;
 function rangeText(a, b){ return b && b !== a ? `${fmt(a)}–${fmt(b)}` : fmt(a); }
 
 /* ---------- 與 Apps Script 溝通（與舊版相同的 API） ---------- */
@@ -378,7 +384,7 @@ function taskRow(t, opt){
   if(t.nature && t.nature !== 'single') meta.push(NATURES[t.nature]);
   if(p) meta.push('📁 ' + h(p.name));
   if(done && t.completedDate) meta.push(`${fmt(t.completedDate)} 完成`);
-  return `<div class="row ${done ? 'done' : ''}" data-act="editTask" data-id="${t.id}"><button class="chk ${done ? 'on' : ''}" data-act="toggleTask" data-id="${t.id}" aria-label="完成"></button><div class="body"><div class="t">${h(t.title)}</div>${meta.length ? `<div class="meta">${meta.join('')}</div>` : ''}</div></div>`;
+  return `<div class="row ${done ? 'done' : ''}" data-act="editTask" data-id="${t.id}"><button class="chk ${done ? 'on' : ''}" data-act="toggleTask" data-id="${t.id}" aria-label="完成"></button><div class="body"><div class="t">${h(t.title)}</div>${meta.length ? `<div class="meta">${meta.join('')}</div>` : ''}</div>${DEL_BTN('task', t.id)}</div>`;
 }
 function evMeta(e, showRange){
   const m = [];
@@ -394,7 +400,7 @@ function agRow(it, opt){
   opt = opt || {};
   if(it.k === 'tk') return taskRow(it.x);
   if(it.k === 'ev'){ const e = it.x;
-    return `<div class="row" data-act="editEvent" data-id="${e.id}"><span class="tm">${h((e.time || '').slice(0, 5))}</span><div class="body"><div class="t">${h(e.title)}</div><div class="meta">${evMeta(e, opt.range)}</div></div></div>`; }
+    return `<div class="row" data-act="editEvent" data-id="${e.id}"><span class="tm">${h((e.time || '').slice(0, 5))}</span><div class="body"><div class="t">${h(e.title)}</div><div class="meta">${evMeta(e, opt.range)}</div></div>${DEL_BTN('event', e.id)}</div>`; }
   if(it.k === 'ms'){ const m = it.x;
     return `<div class="row ${m.done ? 'done' : ''}" data-act="openPlan" data-id="${it.p.id}"><span class="tm"></span><div class="body"><div class="t">${h(m.title)}</div><div class="meta">${tag('里程碑', 3)}${h(it.p.name)}${m.mode === 'remind' ? ' · 只提醒' : ''}</div></div></div>`; }
   if(it.k === 'sc'){ const s = it.x;
@@ -777,7 +783,7 @@ function trashIt(kind, id){
   const [item] = arr.splice(i, 1);
   if(kind === 'plan') DB.tasks.concat(DB.events).forEach(x => { if(x.planId === id) x.planId = ''; });
   DB.trash.push({ kind, item, at: today() }); if(DB.trash.length > 30) DB.trash.shift();
-  save(); toast('已刪除，可在「設定」裡復原');
+  save(); toast('已刪除「' + (item.title || item.name || item.text || item.desc || '') .slice(0, 16) + '」', true);
 }
 
 /* ============================================================
@@ -801,6 +807,8 @@ const A = {
   selDay: d => { S.selDay = d.v; render(); },
   setEx: d => { S.exRange = d.v; S.exOff = 0; render(); },
   exNav: d => { S.exOff = +d.v ? S.exOff + +d.v : 0; render(); },
+  quickDel: d => { trashIt(d.kind, d.id); render(); },
+  undoDel: () => { const x = DB.trash.pop(); if(x && KIND[x.kind]) KIND[x.kind]().push(x.item); save(); render(); $('#toast').classList.remove('show'); toast('已復原'); },
   quickAdd: () => { const i = $('#qaIn'); const v = i.value.trim(); if(!v) return; const q = parseQuick(v);
     DB.tasks.push(newTask({ title:q.title, dueDate:q.dueDate || '', area: S.todoF === 'personal' ? 'personal' : 'work' }));
     save(); render(); const n = $('#qaIn'); if(n) n.focus(); toast('已加入' + (q.dueDate ? `，${fmt(q.dueDate)} 截止` : '')); },
