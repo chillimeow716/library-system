@@ -275,8 +275,18 @@ function fix(){
   ['categories','tasks','events','plans','notes','exercise','schoolCal','trash'].forEach(k => { if(!Array.isArray(DB[k])) DB[k] = []; });
   if(!DB.budget) DB.budget = {};
   ['lines','expenses','otherFunds'].forEach(k => { if(!Array.isArray(DB.budget[k])) DB.budget[k] = []; });
-  DB.tasks.forEach(t => { t.log = t.log || []; t.links = t.links || []; });
-  DB.events.forEach(e => { e.log = e.log || []; e.links = e.links || []; });
+  /* LINE 機器人寫進來的資料用的是舊格式，這裡補上新欄位 */
+  const areaOf = id => { const c = DB.categories.find(x => x.id === id); return c ? c.area : ''; };
+  DB.tasks.forEach(t => { t.log = t.log || []; t.links = t.links || [];
+    if(!t.area) t.area = areaOf(t.categoryId) || 'work';
+    if(!STATUS[t.status]) t.status = t.status === 'archived' ? 'done' : 'todo';
+    if(!t.role) t.role = '承辦'; if(!t.nature) t.nature = 'single'; if(t.planId === undefined) t.planId = '';
+    if(t.waitingFor === undefined) t.waitingFor = ''; if(t.waitingSince === undefined) t.waitingSince = ''; });
+  DB.events.forEach(e => { e.log = e.log || []; e.links = e.links || [];
+    if(!e.type) e.type = '活動'; if(!e.startDate) e.startDate = e.date || today();
+    if(!e.area) e.area = e.type === '個人行程' ? 'personal' : (areaOf(e.categoryId) || 'work');
+    if(!e.categoryId){ const c = e.area === 'personal' ? DB.categories.find(x => x.area === 'personal' && x.name === '個人活動') : DB.categories.find(x => x.area === 'work' && x.name === e.type); if(c) e.categoryId = c.id; }
+    if(!e.role) e.role = '參加'; if(e.planId === undefined) e.planId = ''; });
   DB.plans.forEach(p => { p.milestones = p.milestones || []; p.log = p.log || []; p.milestones.forEach(m => m.log = m.log || []); });
 }
 const cat = id => DB.categories.find(c => c.id === id);
@@ -664,6 +674,7 @@ function renderSheet(){
     ${fld('狀態', segH('status', d.status, Object.entries(STATUS)))}
     ${d.status === 'waiting' ? fld('在等誰、等什麼', inH('waitingFor', d.waitingFor, 'text', '例如：主任簽核')) : ''}
     ${d.area === 'work' ? fld('屬於哪個計畫', selH('planId', d.planId, planOpts(d.categoryId))) : ''}
+    ${d.notes && d.notes !== '源自 LINE' ? fld('備註（LINE 記下的）', taH('notes', d.notes)) : ''}
     ${fld('連結（一行一個）', taH('linksText', d.linksText, '公文、雲端檔案網址'))}${linksView()}${logH()}`;
   } else if(kind === 'event'){
     b = `<h2>${isNew ? '新增行程' : '行程'}</h2>${fld('標題', inH('title', d.title))}
