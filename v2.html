@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>圖書館工作系統</title>
+<style>
+:root{--ink:#37352f;--ink2:#787774;--ink3:#9b9a97;--line:#e9e9e7;--bg:#fff;--soft:#f7f7f5;--hover:#efefed;--accent:#2383e2;--red:#e03e3e;--nav-h:62px}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent)}
+.layout{display:flex}
+.side{display:none}
+.main{flex:1;min-width:0;padding:14px 16px calc(var(--nav-h) + 28px + env(safe-area-inset-bottom));max-width:900px;margin:0 auto}
+.hdr{display:flex;align-items:center;gap:8px;margin:4px 0 14px}
+.hdr h1{font-size:22px;font-weight:700;margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hbtn{border:1px solid var(--line);border-radius:6px;padding:4px 10px;font-size:13px;color:var(--ink2);background:#fff;white-space:nowrap}
+.hbtn:hover{background:var(--hover)}
+.back{font-size:13px;color:var(--ink2);margin-bottom:4px;display:inline-block}
+.bnav{position:fixed;left:0;right:0;bottom:0;height:calc(var(--nav-h) + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);background:#fff;border-top:1px solid var(--line);display:flex;z-index:20}
+.bnav button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:10.5px;color:var(--ink3);min-width:0}
+.bnav button.on{color:var(--ink);font-weight:600}
+.ico{width:26px;height:26px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ico img{width:26px;height:26px;border-radius:6px;object-fit:cover}
+.ico svg{width:21px;height:21px}
+.sec{margin:20px 0 4px;font-size:13px;color:var(--ink2);font-weight:600;display:flex;align-items:center;gap:6px}
+.sec .n{font-weight:400;color:var(--ink3)}
+.sec .sp{flex:1}
+.row{display:flex;align-items:flex-start;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.row:hover{background:var(--soft)}
+.row.static{cursor:default}
+.row .body{flex:1;min-width:0}
+.row .t{word-break:break-word}
+.row .meta{font-size:12px;color:var(--ink2);margin-top:2px;display:flex;flex-wrap:wrap;gap:3px 8px;align-items:center}
+.row .tm{font-size:13px;color:var(--ink2);width:44px;flex-shrink:0;padding-top:1px;font-variant-numeric:tabular-nums}
+.chk{width:18px;height:18px;border:1.5px solid #c7c6c4;border-radius:4px;flex-shrink:0;margin-top:3px;display:flex;align-items:center;justify-content:center}
+.chk.on{background:var(--accent);border-color:var(--accent)}
+.chk.on::after{content:"";width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.done .t{color:var(--ink3);text-decoration:line-through}
+.tag{display:inline-block;font-size:12px;padding:0 6px;border-radius:3px;line-height:20px;white-space:nowrap}
+.late{color:var(--red)}
+.empty{color:var(--ink3);font-size:13px;padding:10px 4px}
+.qa{display:flex;gap:8px;margin-bottom:6px}
+.qa input,.qa textarea{flex:1;border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0;background:#fff}
+.btn{border:1px solid var(--line);border-radius:6px;padding:7px 12px;background:#fff;font-size:14px;white-space:nowrap}
+.btn:hover{background:var(--hover)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.danger{color:var(--red)}
+.btn.sm{padding:2px 8px;font-size:12.5px;font-weight:400}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:3px 11px;font-size:13px;color:var(--ink2);background:#fff}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.card{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:10px}
+.card .ch{display:flex;align-items:center;gap:8px;cursor:pointer}
+.card .ch b{flex:1}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}
+.stat{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.stat .v{font-size:21px;font-weight:700}
+.stat .l{font-size:12px;color:var(--ink2)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border-bottom:1px solid var(--line);padding:6px 4px;text-align:left;white-space:nowrap}
+th{color:var(--ink2);font-weight:500}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.over{color:var(--red);font-weight:600}
+.tw{overflow-x:auto}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-top:1px solid var(--line);border-left:1px solid var(--line)}
+.cal .h{font-size:12px;color:var(--ink2);text-align:center;padding:3px 0;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.cal .d{min-height:62px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:2px;cursor:pointer;overflow:hidden}
+.cal .d.out{background:var(--soft);color:var(--ink3)}
+.cal .d.sel{box-shadow:inset 0 0 0 2px var(--accent)}
+.cal .num{font-size:12px;text-align:left;padding-left:2px}
+.cal .d.today .num span{background:var(--red);color:#fff;border-radius:999px;padding:0 5px}
+.cal .it{font-size:10.5px;line-height:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:2px;padding:0 2px;margin-top:1px}
+.cal .more{font-size:10px;color:var(--ink3);padding-left:2px}
+.k-ev{background:#d3e5ef}.k-pe{background:#f5e0e9}.k-sc{background:#e3e2e0}.k-ms{background:#fdecc8}.k-tk{background:#dbeddb}
+.navrow{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.navrow .lbl{flex:1;text-align:center;font-weight:600}
+.wk .day{border-bottom:1px solid var(--line);padding:8px 0}
+.wk .dh{font-size:13px;font-weight:600;margin-bottom:2px}
+.wk .dh.today{color:var(--red)}
+.wk .row{padding:6px 2px}
+.mini{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:320px}
+.mini span{aspect-ratio:1;border-radius:4px;background:var(--soft);font-size:11px;display:flex;align-items:center;justify-content:center;color:var(--ink3)}
+.mini span.on{background:#6aa58f;color:#fff}
+.mini span.blank{background:none}
+.bar{height:8px;background:#6aa58f;border-radius:4px}
+.ov{position:fixed;inset:0;background:rgba(15,15,15,.35);z-index:40;display:flex;align-items:flex-end;justify-content:center}
+.ov[hidden]{display:none}
+.sheet{background:#fff;width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:12px 12px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
+.sheet h2{font-size:17px;margin:0 0 12px}
+.f{margin-bottom:10px}
+.f>label{display:block;font-size:12px;color:var(--ink2);margin-bottom:3px}
+.f input:not([type=checkbox]),.f select,.f textarea{width:100%;border:1px solid var(--line);border-radius:6px;padding:7px 9px;background:#fff}
+.f textarea{min-height:60px;resize:vertical}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{flex:1;padding:6px 4px;font-size:13px;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--ink);color:#fff}
+.acts{display:flex;gap:8px;margin-top:14px}
+.acts .sp{flex:1}
+.log{border-left:2px solid var(--line);padding-left:10px;margin:6px 0}
+.log .li{font-size:13px;margin-bottom:5px;word-break:break-word}
+.ld{font-size:11px;color:var(--ink3)}
+.toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + 20px);transform:translateX(-50%);background:var(--ink);color:#fff;padding:7px 14px;border-radius:6px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:60}
+.toast.show{opacity:1}
+.center{max-width:440px;margin:12vh auto;padding:20px}
+.ms{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-top:1px dashed var(--line);font-size:14px}
+.ms .md{color:var(--ink2);font-size:12px;white-space:nowrap;padding-top:2px}
+.ms .chk{margin-top:2px}
+.tabs{display:flex;gap:18px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.tabs button{padding:6px 0;color:var(--ink2);font-size:14px;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button.on{color:var(--ink);border-color:var(--ink);font-weight:600}
+.kan{display:grid;grid-template-columns:1fr;gap:8px}
+.kan .col{background:var(--soft);border-radius:8px;padding:8px;min-width:0}
+.kan .col h4{margin:0 0 6px;font-size:13px}
+.kc{background:#fff;border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:13px;margin-bottom:6px;cursor:pointer}
+.note-text{white-space:pre-wrap;word-break:break-word}
+.hint{font-size:12px;color:var(--ink3);margin:8px 0}
+@media(min-width:600px){.kan{grid-template-columns:repeat(3,1fr)}.stats{grid-template-columns:repeat(4,1fr)}}
+@media(min-width:900px){
+ .bnav{display:none}
+ .side{display:block;width:232px;flex-shrink:0;background:var(--soft);border-right:1px solid var(--line);height:100vh;position:sticky;top:0;overflow:auto;padding:14px 8px}
+ .side .brand{font-weight:700;padding:4px 8px 12px}
+ .side button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:5px 8px;border-radius:5px;font-size:14px;color:var(--ink2)}
+ .side button:hover{background:var(--hover)}
+ .side button.on{background:var(--hover);color:var(--ink);font-weight:600}
+ .side .ico,.side .ico img{width:22px;height:22px}
+ .side .ico svg{width:18px;height:18px}
+ .side .subs button{padding:3px 8px 3px 38px;font-size:13px}
+ .side hr{border:0;border-top:1px solid var(--line);margin:10px 8px}
+ .main{padding:28px 40px 48px}
+ .ov{align-items:center}
+ .sheet{border-radius:12px}
+ .toast{bottom:24px}
+ .wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-left:1px solid var(--line);border-top:1px solid var(--line)}
+ .wk .day{border-right:1px solid var(--line);padding:6px;min-height:180px}
+ .wk .row{display:block;font-size:13px}
+ .wk .row .tm{width:auto;display:block;font-size:12px}
+ .wk .row .chk{display:none}
+ .cal .d{min-height:96px}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="ov" id="ov" hidden></div>
+<div class="toast" id="toast"></div>
+<script>
+/* ============================================================
+   圖書館工作系統 v2
+   資料存在同一份 Google 試算表、同一個 Apps Script，
+   但用新的 key（library-system-db-v2），舊資料（v1）不動。
+============================================================ */
+const KEY = 'library-system-db-v2';
+
+/* 選單圖示：之後把貓圖網址（或 data:image）填進來就會取代線條圖示 */
+const NAV_IMG = { todo:'', sched:'', work:'', personal:'', week:'', month:'', notes:'' };
+
+const WORK_CATS = ['圖書館事務','閱讀推廣','自主學習','高中優質化','教師研習','資媒組','研習','會議','活動','其他'];
+const PERSONAL_CATS = ['個人活動','運動紀錄','金錢管理','其他'];
+const NATURES = { single:'單件待辦', flow:'有流程的事', plan:'大計畫', routine:'例行', adhoc:'突發交辦' };
+const STATUS = { todo:'待辦', doing:'進行中', waiting:'等待中', done:'完成' };
+const EVENT_TYPES = ['研習','會議','活動','個人行程'];
+const ADV = ['未送請購','已送出','已收款'];
+const NAV = [['todo','待辦事項'],['sched','行程表'],['work','工作'],['personal','個人'],['week','週行程表'],['month','月行事曆']];
+
+/* 學校行事曆 115-1（圖書館欄＋全校重點） */
+const SCHOOL_115_1 = [
+ ['圖書館義工招募','2026-08-24','2026-09-18','圖書館',''],['圖書館新書展','2026-08-24','2026-10-02','圖書館',''],
+ ['教職員工及學生資料維護','2026-08-24','2026-08-28','圖書館',''],['高一圖書館巡禮','2026-08-31','2026-10-02','圖書館',''],
+ ['全國高中生閱讀心得暨小論文寫作比賽投稿','2026-09-01','2026-10-09','圖書館',''],
+ ['公告高二自主學習名單及上課教室位置（加退選前）','2026-08-31','','圖書館',''],['自主學習平臺開放填寫＆教師審核','2026-09-01','','圖書館',''],
+ ['班級書櫃第1次借書','2026-09-04','','圖書館',''],['公告高二自主學習名單及上課教室位置（加退選後）','2026-09-11','','圖書館',''],
+ ['全國高中生小論文寫作格式說明會（暫定）','2026-09-11','','圖書館',''],['圖書館義工招募截止','2026-09-18','','圖書館',''],
+ ['公告圖書館義工錄取名單','2026-09-21','','圖書館',''],['圖書館義工大會','2026-09-24','','圖書館',''],
+ ['公告9月班級借閱排行榜','2026-10-08','','圖書館',''],['全國高中生閱讀心得寫作比賽截稿（中午12點）','2026-10-09','','圖書館',''],
+ ['全國高中生小論文寫作比賽截稿（中午12點）','2026-10-15','','圖書館',''],['高一&高二各班閱讀札記寫作比賽投稿','2026-10-16','2026-10-30','圖書館',''],
+ ['班級書櫃第1次還書＆第2次借書','2026-10-16','','圖書館',''],['高一自主學習科別教師調查','2026-10-27','','圖書館',''],
+ ['公告10月班級借閱排行榜','2026-11-06','','圖書館',''],['公告高一&高二各班閱讀札記寫作比賽成績並敘獎','2026-11-13','','圖書館',''],
+ ['公告全國高中生閱讀心得寫作比賽成績並敘獎','2026-11-20','','圖書館',''],['高一自主學習科別志願調查','2026-11-23','2026-11-25','圖書館',''],
+ ['圖書館週','2026-11-30','2026-12-04','圖書館',''],['班級書櫃第2次還書','2026-12-02','','圖書館',''],
+ ['高一&高二各班硬筆書法寫字比賽投稿','2026-12-02','2026-12-18','圖書館',''],['公告全國高中生小論文寫作比賽成績並敘獎','2026-12-04','','圖書館',''],
+ ['公告11月班級借閱排行榜','2026-12-04','','圖書館',''],['優質化計畫經費核銷截止','2026-12-04','','圖書館','重要期限'],
+ ['自主學習平臺成果上傳','2026-12-14','2027-01-08','圖書館',''],['圖書館義工＆圖資股長＆自主學習小老師敘獎','2026-12-28','','圖書館',''],
+ ['公告高一&高二各班硬筆書法寫字比賽成績並敘獎','2026-12-31','','圖書館',''],['圖書館停止借書並限期還書＆愛館服務','2026-12-31','','圖書館','重要期限'],
+ ['公告12月班級借閱排行榜、公告學期個人借閱排行榜並敘獎','2027-01-08','','圖書館',''],['自主學習平臺成果上傳截止','2027-01-08','','圖書館','重要期限'],
+ ['自主學習平臺資料下載備份＆教師推薦計畫','2027-01-11','2027-01-29','圖書館',''],
+ ['頒發指導學生參加全國高中生寫作比賽獲獎及教職員工借閱排行榜獎勵金','2027-01-20','','圖書館',''],
+ ['自主學習平臺資料下載截止','2027-01-29','','圖書館','重要期限'],['優質化計畫成果報告上傳截止','2027-01-29','','圖書館','重要期限'],
+ ['期初校務會議','2026-08-28','','全校',''],['開學、發書','2026-08-31','','全校',''],['第一次段考','2026-10-15','2026-10-16','全校',''],
+ ['30週年校慶暨園遊會','2026-12-05','','全校',''],['校慶補假','2026-12-07','','全校',''],['第二次段考','2026-12-01','2026-12-02','全校',''],
+ ['高一&高二期末考','2027-01-18','2027-01-19','全校',''],['期末校務會議','2027-01-20','','全校',''],
+ ['10月行政會報','2026-10-06','','全校',''],['12月行政會報','2026-12-15','','全校',''],['1月行政會報','2027-01-05','','全校','']
+];
+
+/* ---------- 小工具 ---------- */
+const $ = s => document.querySelector(s);
+const h = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const uid = p => p + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const toD = s => new Date(s + 'T00:00:00');
+const today = () => ymd(new Date());
+const addDays = (s, n) => { const d = toD(s); d.setDate(d.getDate() + n); return ymd(d); };
+const diff = s => Math.round((toD(s) - toD(today())) / 864e5);
+const WD = '日一二三四五六';
+const fmt = s => s ? `${+s.slice(5,7)}/${+s.slice(8,10)}` : '';
+const fmtW = s => `${fmt(s)}（${WD[toD(s).getDay()]}）`;
+const weekStart = s => { const d = toD(s); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return ymd(d); };
+const money = n => (Math.round(+n || 0)).toLocaleString('zh-TW');
+const clone = o => JSON.parse(JSON.stringify(o));
+function toast(m){ const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 1900); }
+function rangeText(a, b){ return b && b !== a ? `${fmt(a)}–${fmt(b)}` : fmt(a); }
+
+/* ---------- 與 Apps Script 溝通（與舊版相同的 API） ---------- */
+const Sync = { url(){ return localStorage.getItem('libSyncUrl') || ''; }, set(u){ localStorage.setItem('libSyncUrl', (u || '').trim()); } };
+const qs = u => u + (u.includes('?') ? '&' : '?');
+async function apiGet(key){
+  const u = Sync.url(); if(!u) throw new Error('尚未設定網址');
+  const r = await fetch(qs(u) + 'action=get&key=' + encodeURIComponent(key));
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  const d = await r.json(); if(!d.ok) throw new Error(d.error || '讀取失敗');
+  return (d.value === null || d.value === undefined || d.value === '') ? null : d.value;
+}
+async function apiSet(key, value){
+  const u = Sync.url();
+  const r = await fetch(u, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({ action:'set', key, value }) });
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  const d = await r.json(); if(!d.ok) throw new Error(d.error || '儲存失敗');
+}
+async function ping(u){ const r = await fetch(qs(u) + 'action=ping'); const d = await r.json(); if(!d.ok) throw new Error(d.error || '連線失敗'); }
+
+let DB = null, lastRaw = null, saveT = null, pollT = null;
+async function saveNow(){
+  clearTimeout(saveT); saveT = null;
+  const raw = JSON.stringify(DB);
+  try{ await apiSet(KEY, raw); lastRaw = raw; }
+  catch(e){ toast('⚠ 儲存失敗：' + e.message); }
+}
+function save(){ clearTimeout(saveT); saveT = setTimeout(saveNow, 400); }
+
+/* ---------- 資料 ---------- */
+function seed(){
+  const db = { version:2, createdAt: today(), categories:[], tasks:[], events:[], plans:[], notes:[], exercise:[], schoolCal:[],
+    budget:{ lines:[], expenses:[], otherFunds:[] }, trash:[] };
+  WORK_CATS.forEach((n, i) => db.categories.push({ id: uid('c'), name:n, area:'work', order:i }));
+  PERSONAL_CATS.forEach((n, i) => db.categories.push({ id: uid('c'), name:n, area:'personal', order:i }));
+  const cid = n => db.categories.find(c => c.area === 'work' && c.name === n).id;
+  const ms = (title, date, mode) => ({ id: uid('m'), title, date, mode, done:false, log:[] });
+  const hq = cid('高中優質化');
+  db.plans.push({ id: uid('p'), categoryId: hq, name:'高中優質化整體計畫', role:'承辦', desc:'', log:[], milestones:[
+    ms('115-1 期初說明會', '', 'host'),
+    ms('優質化計畫經費核銷截止', '2026-12-04', 'remind'),
+    ms('115-1 期末說明會（或不辦，只提醒核銷進度）', '', 'host'),
+    ms('優質化計畫成果報告上傳截止', '2027-01-29', 'remind'),
+    ms('115-2 期初說明會', '', 'host'),
+    ms('成果說明會', '', 'host') ]});
+  ['A-2-2','B-2','B-3'].forEach(code => db.plans.push({ id: uid('p'), categoryId: hq, name: code, role:'執行', desc:'', log:[], milestones:[] }));
+  db.plans.push({ id: uid('p'), categoryId: cid('自主學習'), name:'自主學習平臺（115-1）', role:'承辦', desc:'', log:[], milestones:[
+    ms('自主學習平臺成果上傳開始', '2026-12-14', 'remind'),
+    ms('自主學習平臺成果上傳截止', '2027-01-08', 'remind'),
+    ms('自主學習平臺資料下載截止', '2027-01-29', 'remind') ]});
+  db.schoolCal = SCHOOL_115_1.map(([title, startDate, endDate, source, tag]) => ({ id: uid('s'), title, startDate, endDate, source, tag, term:'115-1' }));
+  db.budget.lines = ['A-2-2','B-2','B-3'].map(code => ({ id: uid('b'), code, name:'', approved:0, items:[] }));
+  db.budget.otherFunds = [
+    { id: uid('f'), name:'閱推社群', amount:25000, note:'' },
+    { id: uid('f'), name:'黑夜告白徵稿', amount:9650, note:'校本經費' } ];
+  return db;
+}
+function fix(){
+  ['categories','tasks','events','plans','notes','exercise','schoolCal','trash'].forEach(k => { if(!Array.isArray(DB[k])) DB[k] = []; });
+  if(!DB.budget) DB.budget = {};
+  ['lines','expenses','otherFunds'].forEach(k => { if(!Array.isArray(DB.budget[k])) DB.budget[k] = []; });
+  DB.tasks.forEach(t => { t.log = t.log || []; t.links = t.links || []; });
+  DB.events.forEach(e => { e.log = e.log || []; e.links = e.links || []; });
+  DB.plans.forEach(p => { p.milestones = p.milestones || []; p.log = p.log || []; p.milestones.forEach(m => m.log = m.log || []); });
+}
+const cat = id => DB.categories.find(c => c.id === id);
+const cats = area => DB.categories.filter(c => c.area === area).sort((a, b) => a.order - b.order);
+const catByName = (area, n) => DB.categories.find(c => c.area === area && c.name === n);
+const planOf = id => DB.plans.find(p => p.id === id);
+const evEnd = e => e.endDate || e.startDate;
+const onDay = (e, d) => e.startDate && e.startDate <= d && d <= evEnd(e);
+/* 研習／會議／活動 這三種行程，也會出現在同名的分類裡 */
+function inCat(x, c){ return x.categoryId === c.id || (c.area === 'work' && x.type && x.type !== '個人行程' && x.type === c.name); }
+function newTask(o){ return Object.assign({ id: uid('t'), title:'', area:'work', categoryId:'', role:'承辦', nature:'single', status:'todo', dueDate:'',
+  planId:'', eventId:'', waitingFor:'', waitingSince:'', links:[], log:[], createdAt: today(), completedDate:'' }, o || {}); }
+function newEvent(o){ const e = Object.assign({ id: uid('e'), title:'', type:'會議', area:'work', categoryId:'', role:'參加', startDate: today(), endDate:'',
+  time:'', location:'', info:'', planId:'', links:[], log:[], createdAt: today() }, o || {});
+  if(!e.categoryId){ const c = e.type === '個人行程' ? catByName('personal','個人活動') : catByName('work', e.type); e.categoryId = c ? c.id : ''; }
+  return e; }
+
+/* ---------- 畫面狀態 ---------- */
+const S = { page:'todo', prev:'todo', cat:null, tab:'', weekOff:0, monthOff:0, selDay:null, schedF:'all', showPast:false,
+  todoF:'all', showDone:false, exRange:'week', exOff:0, noteF:'all' };
+let SH = null; // 正在開的編輯視窗 {kind, d, isNew, extra}
+
+/* ---------- 圖示 ---------- */
+const SVG = {
+  todo:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12l3 3 5-6"/>',
+  sched:'<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>',
+  work:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M3 13h18"/>',
+  personal:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>',
+  week:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M9 9v12M15 9v12"/>',
+  month:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M7 13h2M11 13h2M15 13h2M7 17h2M11 17h2"/>',
+  notes:'<path d="M5 3h10l4 4v14H5z"/><path d="M9 11h6M9 15h6"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/>'
+};
+function icon(k){ return `<span class="ico">${NAV_IMG[k] ? `<img src="${h(NAV_IMG[k])}" alt="">` : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${SVG[k] || ''}</svg>`}</span>`; }
+
+/* ---------- 標籤 ---------- */
+const PAL = [['#e3e2e0','#32302c'],['#d3e5ef','#183347'],['#dbeddb','#1c3829'],['#fdecc8','#402c1b'],['#e8deee','#412454'],['#fadec9','#49290e'],['#f5e0e9','#4c2337'],['#eee0da','#442a1e'],['#ffe2dd','#5d1715'],['#e3e2e0','#32302c'],['#d3e5ef','#183347']];
+function tag(text, i){ const p = PAL[(i || 0) % PAL.length]; return `<span class="tag" style="background:${p[0]};color:${p[1]}">${h(text)}</span>`; }
+function catTag(id){ const c = cat(id); if(!c) return tag('未分類', 0); return tag(c.name, c.area === 'work' ? c.order + 1 : c.order + 6); }
+
+/* ============================================================
+   畫面
+============================================================ */
+function render(){
+  if(!DB) return;
+  const y = window.scrollY;
+  $('#app').innerHTML = `<div class="layout">${side()}<main class="main">${page()}</main></div>${bnav()}`;
+  window.scrollTo(0, y);
+}
+function bnav(){ return `<nav class="bnav">${NAV.map(([k, l]) => `<button class="${S.page === k ? 'on' : ''}" data-act="go" data-p="${k}">${icon(k)}<span>${l}</span></button>`).join('')}</nav>`; }
+function side(){
+  const sub = area => `<div class="subs">${cats(area).map(c => `<button class="${S.cat === c.id ? 'on' : ''}" data-act="openCat" data-id="${c.id}">${h(c.name)}</button>`).join('')}</div>`;
+  return `<aside class="side"><div class="brand">圖書館工作系統</div>${NAV.map(([k, l]) =>
+    `<button class="${S.page === k && !(S.cat && (k === 'work' || k === 'personal')) ? 'on' : ''}" data-act="go" data-p="${k}">${icon(k)}${l}</button>${(k === 'work' || k === 'personal') && S.page === k ? sub(k) : ''}`).join('')}
+    <hr><button class="${S.page === 'notes' ? 'on' : ''}" data-act="go" data-p="notes">${icon('notes')}筆記</button>
+    <button data-act="settings">${icon('gear')}設定</button></aside>`;
+}
+function hdr(title, opt){
+  opt = opt || {};
+  return `${opt.back ? `<button class="back" data-act="${opt.back}">‹ ${h(opt.backLabel || '返回')}</button>` : ''}
+  <div class="hdr"><h1>${h(title)}</h1>${opt.extra || ''}${S.page !== 'notes' ? `<button class="hbtn" data-act="go" data-p="notes">筆記</button>` : ''}<button class="hbtn mobile-only" data-act="settings" aria-label="設定">⚙</button></div>`;
+}
+function page(){
+  switch(S.page){
+    case 'todo': return pgTodo();
+    case 'sched': return pgSched();
+    case 'work': return S.cat ? pgCat() : pgCatList('work');
+    case 'personal': return S.cat ? pgCat() : pgCatList('personal');
+    case 'week': return pgWeek();
+    case 'month': return pgMonth();
+    case 'notes': return pgNotes();
+  }
+  return '';
+}
+
+/* ---------- 列 ---------- */
+function taskRow(t, opt){
+  opt = opt || {};
+  const done = t.status === 'done';
+  const d = t.dueDate ? diff(t.dueDate) : null;
+  const late = !done && d !== null && d < 0;
+  const p = t.planId ? planOf(t.planId) : null;
+  const meta = [];
+  if(!opt.noCat) meta.push(catTag(t.categoryId));
+  if(t.status === 'doing') meta.push(tag('進行中', 1));
+  if(t.status === 'waiting') meta.push(tag('等待中', 3) + (t.waitingFor ? ` ${h(t.waitingFor)}` : '') + (t.waitingSince ? ` · 已等 ${Math.max(0, -diff(t.waitingSince))} 天` : ''));
+  if(t.dueDate) meta.push(`<span class="${late ? 'late' : ''}">${late ? '逾期 ' : ''}${fmtW(t.dueDate)}截止</span>`);
+  if(t.area === 'work' && t.role === '參加') meta.push('參加');
+  if(t.nature && t.nature !== 'single') meta.push(NATURES[t.nature]);
+  if(p) meta.push('📁 ' + h(p.name));
+  if(done && t.completedDate) meta.push(`${fmt(t.completedDate)} 完成`);
+  return `<div class="row ${done ? 'done' : ''}" data-act="editTask" data-id="${t.id}"><button class="chk ${done ? 'on' : ''}" data-act="toggleTask" data-id="${t.id}" aria-label="完成"></button><div class="body"><div class="t">${h(t.title)}</div>${meta.length ? `<div class="meta">${meta.join('')}</div>` : ''}</div></div>`;
+}
+function evMeta(e, showRange){
+  const m = [];
+  m.push(tag(e.type, e.type === '個人行程' ? 7 : 2));
+  const c = cat(e.categoryId);
+  if(c && c.name !== e.type && !(e.type === '個人行程' && c.name === '個人活動')) m.push(catTag(e.categoryId));
+  if(e.area === 'work' && e.role === '承辦') m.push('承辦');
+  if(showRange && e.endDate && e.endDate !== e.startDate) m.push(rangeText(e.startDate, e.endDate));
+  if(e.location) m.push('📍' + h(e.location));
+  return m.join('');
+}
+function agRow(it, opt){
+  opt = opt || {};
+  if(it.k === 'tk') return taskRow(it.x);
+  if(it.k === 'ev'){ const e = it.x;
+    return `<div class="row" data-act="editEvent" data-id="${e.id}"><span class="tm">${h((e.time || '').slice(0, 5))}</span><div class="body"><div class="t">${h(e.title)}</div><div class="meta">${evMeta(e, opt.range)}</div></div></div>`; }
+  if(it.k === 'ms'){ const m = it.x;
+    return `<div class="row ${m.done ? 'done' : ''}" data-act="openPlan" data-id="${it.p.id}"><span class="tm"></span><div class="body"><div class="t">${h(m.title)}</div><div class="meta">${tag('里程碑', 3)}${h(it.p.name)}${m.mode === 'remind' ? ' · 只提醒' : ''}</div></div></div>`; }
+  if(it.k === 'sc'){ const s = it.x;
+    return `<div class="row static"><span class="tm"></span><div class="body"><div class="t ${s.tag ? 'late' : ''}">${h(s.title)}</div><div class="meta">${tag('校曆', 0)}${h(s.source)}${s.tag ? ' · ' + h(s.tag) : ''}${opt.range && s.endDate && s.endDate !== s.startDate ? ' · ' + rangeText(s.startDate, s.endDate) : ''}</div></div></div>`; }
+  return '';
+}
+/* 某一天的所有項目 f: all / work / personal / school */
+function dayItems(d, f, withTasks){
+  const out = [];
+  if(f !== 'school'){
+    DB.events.forEach(e => { if(onDay(e, d) && (f === 'all' || e.area === f)) out.push({ k:'ev', x:e, t:e.time || '', s:e.startDate }); });
+    if(f === 'all' || f === 'work') DB.plans.forEach(p => p.milestones.forEach(m => { if(m.date === d) out.push({ k:'ms', x:m, p, t:'', s:d }); }));
+    if(withTasks) DB.tasks.forEach(t => { if(t.status !== 'done' && t.dueDate === d && (f === 'all' || t.area === f)) out.push({ k:'tk', x:t, t:'', s:d }); });
+  }
+  if(f === 'all' || f === 'school') DB.schoolCal.forEach(s => { if(s.startDate <= d && d <= (s.endDate || s.startDate)) out.push({ k:'sc', x:s, t:'', s:s.startDate }); });
+  const rank = { ev:0, ms:1, tk:2, sc:3 };
+  out.sort((a, b) => (a.t || '99').localeCompare(b.t || '99') || rank[a.k] - rank[b.k]);
+  return out;
+}
+function dayLabel(d){ const n = diff(d); return fmtW(d) + (n === 0 ? ' 今天' : n === 1 ? ' 明天' : ''); }
+
+/* ---------- 待辦事項 ---------- */
+function pgTodo(){
+  const f = S.todoF;
+  const T = DB.tasks.filter(t => t.status !== 'done' && (f === 'all' || t.area === f));
+  const by = (a, b) => (a.dueDate || '9').localeCompare(b.dueDate || '9');
+  const wait = T.filter(t => t.status === 'waiting').sort(by);
+  const rest = T.filter(t => t.status !== 'waiting');
+  const g = { late:[], today:[], week:[], later:[], none:[] };
+  rest.forEach(t => { if(!t.dueDate) return g.none.push(t); const n = diff(t.dueDate);
+    (n < 0 ? g.late : n === 0 ? g.today : n <= 7 ? g.week : g.later).push(t); });
+  Object.values(g).forEach(a => a.sort(by));
+  const grp = (title, arr) => arr.length ? `<div class="sec">${title} <span class="n">${arr.length}</span></div>${arr.map(t => taskRow(t)).join('')}` : '';
+  const recent = DB.tasks.filter(t => t.status === 'done' && (f === 'all' || t.area === f) && t.completedDate >= addDays(today(), -7)).sort((a, b) => b.completedDate.localeCompare(a.completedDate));
+  return hdr('待辦事項') + `
+  <div class="qa"><input id="qaIn" data-enter="quickAdd" placeholder="新增待辦，可用「11/25 交成果報告」帶日期"><button class="btn pri" data-act="quickAdd">新增</button></div>
+  <div class="chips">${[['all','全部'],['work','工作'],['personal','個人']].map(([k, l]) => `<button class="chip ${f === k ? 'on' : ''}" data-act="setS" data-k="todoF" data-v="${k}">${l}</button>`).join('')}</div>
+  ${T.length ? '' : '<div class="empty">目前沒有待辦。</div>'}
+  ${grp('逾期', g.late)}${grp('今天', g.today)}${grp('七天內', g.week)}${grp('之後', g.later)}${grp('等待中', wait)}${grp('沒有日期', g.none)}
+  <div class="sec">最近 7 天完成 <span class="n">${recent.length}</span><span class="sp"></span>${recent.length ? `<button class="btn sm" data-act="setS" data-k="showDone" data-v="${S.showDone ? '' : '1'}">${S.showDone ? '收起' : '展開'}</button>` : ''}</div>
+  ${S.showDone ? recent.map(t => taskRow(t)).join('') : ''}`;
+}
+
+/* ---------- 行程表 ---------- */
+function pgSched(){
+  const f = S.schedF, from = S.showPast ? addDays(today(), -30) : today(), to = addDays(today(), 120);
+  let html = '';
+  for(let d = from; d <= to; d = addDays(d, 1)){
+    const items = dayItems(d, f, false).filter(it => it.k === 'ms' || it.s === d || d === from);
+    if(items.length) html += `<div class="sec ${diff(d) === 0 ? 'late' : ''}">${dayLabel(d)}</div>${items.map(it => agRow(it, { range:true })).join('')}`;
+  }
+  return hdr('行程表', { extra:`<button class="hbtn" data-act="newEvent">＋ 行程</button>` }) + `
+  <div class="chips">${[['all','全部'],['work','工作'],['personal','個人'],['school','校曆']].map(([k, l]) => `<button class="chip ${f === k ? 'on' : ''}" data-act="setS" data-k="schedF" data-v="${k}">${l}</button>`).join('')}
+  <button class="chip ${S.showPast ? 'on' : ''}" data-act="setS" data-k="showPast" data-v="${S.showPast ? '' : '1'}">含過去 30 天</button></div>
+  ${html || '<div class="empty">接下來 120 天沒有行程。</div>'}`;
+}
+
+/* ---------- 工作／個人：分類列表 ---------- */
+function pgCatList(area){
+  const rows = cats(area).map(c => {
+    let sub;
+    if(area === 'personal' && c.name === '運動紀錄'){ const n = DB.exercise.filter(x => x.date >= weekStart(today())).length; sub = `本週 ${n} 次`; }
+    else if(area === 'personal' && c.name === '金錢管理') sub = '需要密碼';
+    else {
+      const nt = DB.tasks.filter(t => t.status !== 'done' && t.area === area && inCat(t, c)).length;
+      const ne = DB.events.filter(e => e.area === area && inCat(e, c) && evEnd(e) >= today()).length;
+      const np = DB.plans.filter(p => p.categoryId === c.id).length;
+      sub = `${nt} 件待辦 · ${ne} 個行程${np ? ` · ${np} 個計畫` : ''}`;
+    }
+    return `<div class="row" data-act="openCat" data-id="${c.id}"><div class="body"><div class="t">${catTag(c.id)}</div><div class="meta">${sub}</div></div><span style="color:var(--ink3)">›</span></div>`;
+  }).join('');
+  const un = DB.tasks.filter(t => t.status !== 'done' && t.area === area && !cat(t.categoryId)).length;
+  return hdr(area === 'work' ? '工作' : '個人') + rows +
+    (un ? `<div class="row" data-act="openCat" data-id="__none_${area}"><div class="body"><div class="t">${tag('未分類', 0)}</div><div class="meta">${un} 件待辦，點進去分類</div></div><span style="color:var(--ink3)">›</span></div>` : '');
+}
+
+/* ---------- 分類內頁 ---------- */
+function pgCat(){
+  const area = S.page;
+  if(S.cat.startsWith('__none_')){
+    const T = DB.tasks.filter(t => t.status !== 'done' && t.area === area && !cat(t.categoryId));
+    return hdr('未分類', { back:'backCat', backLabel: area === 'work' ? '工作' : '個人' }) + (T.length ? T.map(t => taskRow(t)).join('') : '<div class="empty">都分類好了。</div>');
+  }
+  const c = cat(S.cat); if(!c){ S.cat = null; return pgCatList(area); }
+  const back = { back:'backCat', backLabel: area === 'work' ? '工作' : '個人' };
+  if(area === 'personal' && c.name === '運動紀錄') return pgExercise(back);
+  if(area === 'personal' && c.name === '金錢管理') return hdr('金錢管理', back) + `<div class="card"><b>🔒 需要密碼才能看</b>
+    <p style="font-size:14px;color:var(--ink2)">收入、股市持股會在第 3 階段開通。到時候密碼設在 Apps Script，由後端檢查正確後才把資料傳給網頁，網頁本身不存任何金額。</p></div>`;
+  const isHQ = area === 'work' && c.name === '高中優質化';
+  const tab = isHQ ? (S.tab || 'main') : 'main';
+  const extra = `<button class="hbtn" data-act="newTask" data-cat="${c.id}">＋ 待辦</button><button class="hbtn" data-act="newEvent" data-cat="${c.id}">＋ 行程</button>`;
+  let html = hdr(c.name, Object.assign({ extra }, back));
+  if(isHQ) html += `<div class="tabs"><button class="${tab === 'main' ? 'on' : ''}" data-act="setS" data-k="tab" data-v="main">工作</button><button class="${tab === 'money' ? 'on' : ''}" data-act="setS" data-k="tab" data-v="money">經費</button></div>`;
+  if(tab === 'money') return html + budgetView();
+
+  if(area === 'work'){
+    const plans = DB.plans.filter(p => p.categoryId === c.id);
+    html += `<div class="sec">計畫 <span class="n">${plans.length}</span><span class="sp"></span><button class="btn sm" data-act="newPlan" data-cat="${c.id}">＋ 計畫</button></div>`;
+    html += plans.map(planCard).join('') || '<div class="empty">還沒有計畫。大計畫（例如有里程碑的專案）可以放這裡。</div>';
+  }
+  const T = DB.tasks.filter(t => t.area === area && inCat(t, c));
+  const open = T.filter(t => t.status !== 'done' && !t.planId).sort((a, b) => (a.dueDate || '9').localeCompare(b.dueDate || '9'));
+  const done = T.filter(t => t.status === 'done').sort((a, b) => (b.completedDate || '').localeCompare(a.completedDate || ''));
+  html += `<div class="sec">待辦 <span class="n">${open.length}</span></div>` + (open.map(t => taskRow(t, { noCat:true })).join('') || '<div class="empty">沒有待辦。</div>');
+  const E = DB.events.filter(e => e.area === area && inCat(e, c)).sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const up = E.filter(e => evEnd(e) >= today());
+  html += `<div class="sec">接下來的行程 <span class="n">${up.length}</span></div>` +
+    (up.map(e => `<div class="sec" style="margin:10px 0 0;font-weight:400">${dayLabel(e.startDate)}</div>${agRow({ k:'ev', x:e }, { range:true })}`).join('') || '<div class="empty">沒有行程。</div>');
+  const past = E.filter(e => evEnd(e) < today()).reverse();
+  html += `<div class="sec">已完成 <span class="n">${done.length} 件待辦 · ${past.length} 個過去行程</span><span class="sp"></span>${done.length || past.length ? `<button class="btn sm" data-act="setS" data-k="showDone" data-v="${S.showDone ? '' : '1'}">${S.showDone ? '收起' : '展開'}</button>` : ''}</div>`;
+  if(S.showDone) html += done.map(t => taskRow(t, { noCat:true })).join('') + past.map(e => `<div class="sec" style="margin:10px 0 0;font-weight:400">${fmtW(e.startDate)}</div>${agRow({ k:'ev', x:e })}`).join('');
+  return html;
+}
+function planCard(p){
+  const T = DB.tasks.filter(t => t.planId === p.id);
+  const open = T.filter(t => t.status !== 'done');
+  const nd = p.milestones.filter(m => !m.done).length;
+  return `<div class="card"><div class="ch" data-act="editPlan" data-id="${p.id}"><b>📁 ${h(p.name)}</b>${tag(p.role, p.role === '承辦' ? 4 : 1)}<span class="ld">${open.length} 件待辦${p.milestones.length ? ` · 里程碑 ${p.milestones.length - nd}/${p.milestones.length}` : ''}</span></div>
+  ${p.milestones.map((m, i) => `<div class="ms ${m.done ? 'done' : ''}"><button class="chk ${m.done ? 'on' : ''}" data-act="toggleMs" data-id="${p.id}" data-i="${i}"></button><div style="flex:1"><span class="t">${h(m.title)}</span>${m.mode === 'remind' ? ' <span class="ld">只提醒</span>' : ''}</div><span class="md ${!m.done && m.date && diff(m.date) < 0 ? 'late' : ''}">${m.date ? fmtW(m.date) : '日期未定'}</span></div>`).join('')}
+  ${open.map(t => taskRow(t, { noCat:true })).join('')}
+  <div style="margin-top:6px;display:flex;gap:6px"><button class="btn sm" data-act="newTask" data-cat="${p.categoryId}" data-plan="${p.id}">＋ 待辦</button>${p.log.length ? `<span class="ld" style="padding-top:3px">最新筆記：${fmt(p.log[0].date)} ${h(p.log[0].text)}</span>` : ''}</div></div>`;
+}
+
+/* ---------- 經費（高中優質化） ---------- */
+function budgetView(){
+  const B = DB.budget, E = B.expenses;
+  const used = (code, c) => E.filter(x => x.code === code && (c === undefined || x.cat === c)).reduce((s, x) => s + (+x.amount || 0), 0);
+  let html = `<p class="hint">目前是手動記錄。第 4 階段會改成直接讀你的經費試算表，不用重新輸入。</p>
+  <div class="sec">經費總表<span class="sp"></span><button class="btn sm" data-act="newExp">＋ 支出</button><button class="btn sm" data-act="newLine">＋ 計畫經費</button></div>
+  <div class="tw"><table><tr><th>計畫</th><th class="num">核定</th><th class="num">已用</th><th class="num">剩餘</th><th class="num">執行率</th></tr>`;
+  let ta = 0, tu = 0;
+  B.lines.forEach(l => { const u = used(l.code), r = (+l.approved || 0) - u; ta += +l.approved || 0; tu += u;
+    html += `<tr data-act="editLine" data-id="${l.id}" style="cursor:pointer"><td>${h(l.code)}${l.name ? ` <span class="ld">${h(l.name)}</span>` : ''}</td><td class="num">${money(l.approved)}</td><td class="num">${money(u)}</td><td class="num ${r < 0 ? 'over' : ''}">${money(r)}</td><td class="num">${+l.approved ? Math.round(u / l.approved * 100) + '%' : '—'}</td></tr>`; });
+  html += `<tr><th>合計</th><th class="num">${money(ta)}</th><th class="num">${money(tu)}</th><th class="num ${ta - tu < 0 ? 'over' : ''}">${money(ta - tu)}</th><th class="num">${ta ? Math.round(tu / ta * 100) + '%' : '—'}</th></tr></table></div>`;
+
+  html += `<div class="sec">概算表</div>`;
+  B.lines.forEach(l => {
+    const rows = (l.items || []).map(it => ({ c: it.cat, p: +it.amount || 0 }));
+    E.filter(x => x.code === l.code).forEach(x => { const c = x.cat || '未填類別'; if(!rows.find(r => r.c === c)) rows.push({ c, p:0 }); });
+    html += `<div class="card"><div class="ch" data-act="editLine" data-id="${l.id}"><b>${h(l.code)}</b><span class="ld">編輯</span></div>` +
+      (rows.length ? `<div class="tw"><table><tr><th>經費類別</th><th class="num">概算</th><th class="num">已用</th><th class="num">剩餘</th></tr>${rows.map(r => { const u = used(l.code, r.c === '未填類別' ? '' : r.c); const o = u > r.p;
+        return `<tr><td>${h(r.c)}</td><td class="num">${money(r.p)}</td><td class="num ${o ? 'over' : ''}">${money(u)}</td><td class="num ${o ? 'over' : ''}">${money(r.p - u)}</td></tr>`; }).join('')}</table></div>` : '<div class="empty">還沒有概算項目，點「編輯」加入。</div>') + `</div>`;
+  });
+
+  const adv = E.filter(x => ADV.includes(x.adv));
+  html += `<div class="sec">代墊追蹤 <span class="n">${adv.length}</span></div><div class="kan">${ADV.map(s => { const L = adv.filter(x => x.adv === s);
+    return `<div class="col"><h4>${s} <span class="ld">${L.length} 筆 · ${money(L.reduce((a, x) => a + (+x.amount || 0), 0))}</span></h4>${L.map(x =>
+      `<div class="kc" data-act="editExp" data-id="${x.id}"><div>${h(x.desc || x.cat || '支出')} <b>${money(x.amount)}</b></div><div class="ld">${h(x.code)}${x.advBy ? ' · ' + h(x.advBy) + '代墊' : ''}${x.invoice === 'no' ? ' · <span class="late">發票尚未</span>' : ''}${x.date ? ' · ' + fmt(x.date) : ''}</div></div>`).join('') || '<div class="ld">（無）</div>'}</div>`; }).join('')}</div>`;
+
+  html += `<div class="sec">其他經費來源<span class="sp"></span><button class="btn sm" data-act="newFund">＋ 經費來源</button></div><div class="tw"><table><tr><th>名稱</th><th class="num">金額</th><th class="num">已用</th><th class="num">剩餘</th></tr>`;
+  B.otherFunds.forEach(f => { const u = used(f.name); html += `<tr data-act="editFund" data-id="${f.id}" style="cursor:pointer"><td>${h(f.name)}${f.note ? ` <span class="ld">${h(f.note)}</span>` : ''}</td><td class="num">${money(f.amount)}</td><td class="num">${money(u)}</td><td class="num ${f.amount - u < 0 ? 'over' : ''}">${money(f.amount - u)}</td></tr>`; });
+  html += `</table></div>`;
+
+  const recent = E.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 30);
+  html += `<div class="sec">最近支出 <span class="n">${E.length}</span></div>` + (recent.map(x =>
+    `<div class="row" data-act="editExp" data-id="${x.id}"><div class="body"><div class="t">${h(x.desc || x.cat || '支出')}</div><div class="meta">${tag(x.code, 1)}${x.cat ? h(x.cat) : ''}${x.date ? ' · ' + fmt(x.date) : ''}${ADV.includes(x.adv) ? ' · 代墊：' + h(x.adv) : ''}</div></div><b class="num">${money(x.amount)}</b></div>`).join('') || '<div class="empty">還沒有支出紀錄。</div>');
+  return html;
+}
+
+/* ---------- 運動紀錄 ---------- */
+function exRange(){
+  const r = S.exRange, o = S.exOff, now = new Date();
+  if(r === 'week'){ const a = addDays(weekStart(today()), o * 7), b = addDays(a, 6); return { a, b, label: `${fmt(a)}–${fmt(b)}` }; }
+  if(r === 'month'){ const d = new Date(now.getFullYear(), now.getMonth() + o, 1); const a = ymd(d); const b = ymd(new Date(d.getFullYear(), d.getMonth() + 1, 0)); return { a, b, label: `${d.getFullYear()} 年 ${d.getMonth() + 1} 月` }; }
+  const y = now.getFullYear() + o; return { a: `${y}-01-01`, b: `${y}-12-31`, label: `${y} 年`, y };
+}
+function pgExercise(back){
+  const R = exRange();
+  const L = DB.exercise.filter(x => x.date >= R.a && x.date <= R.b).sort((a, b) => b.date.localeCompare(a.date));
+  const days = new Set(L.map(x => x.date));
+  const run = L.filter(x => x.type === '跑步').reduce((s, x) => s + (+x.distanceKm || 0), 0);
+  const yoga = L.filter(x => x.type === '瑜珈').length;
+  const mins = L.reduce((s, x) => s + (+x.minutes || 0), 0);
+  let vis = '';
+  if(S.exRange === 'year'){
+    const cnt = Array.from({ length:12 }, (_, i) => new Set(L.filter(x => +x.date.slice(5, 7) === i + 1).map(x => x.date)).size);
+    const mx = Math.max(1, ...cnt);
+    vis = cnt.map((n, i) => `<div style="display:flex;align-items:center;gap:8px;font-size:12px;margin:3px 0"><span style="width:34px;color:var(--ink2)">${i + 1} 月</span><div class="bar" style="width:${n / mx * 70}%;${n ? '' : 'background:var(--soft)'}"></div><span>${n} 天</span></div>`).join('');
+  } else {
+    const lead = (toD(R.a).getDay() + 6) % 7;
+    vis =`<div class="mini">${[...'一二三四五六日'].map(w => `<span class="blank">${w}</span>`).join('')}${'<span class="blank"></span>'.repeat(lead)}`;
+    for(let d = R.a; d <= R.b; d = addDays(d, 1)) vis += `<span class="${days.has(d) ? 'on' : ''}">${+d.slice(8)}</span>`;
+    vis += `</div>`;
+  }
+  return hdr('運動紀錄', Object.assign({ extra:`<button class="hbtn" data-act="newEx">＋ 紀錄</button>` }, back)) + `
+  <div class="chips">${[['week','週'],['month','月'],['year','年']].map(([k, l]) => `<button class="chip ${S.exRange === k ? 'on' : ''}" data-act="setEx" data-v="${k}">${l}</button>`).join('')}</div>
+  <div class="navrow"><button class="btn sm" data-act="exNav" data-v="-1">‹</button><div class="lbl">${R.label}</div><button class="btn sm" data-act="exNav" data-v="1">›</button>${S.exOff ? `<button class="btn sm" data-act="exNav" data-v="0">回到現在</button>` : ''}</div>
+  <div class="stats"><div class="stat"><div class="v">${days.size}</div><div class="l">運動天數</div></div><div class="stat"><div class="v">${L.length}</div><div class="l">運動次數</div></div>
+  <div class="stat"><div class="v">${Math.round(run * 10) / 10}</div><div class="l">跑步距離（公里）</div></div><div class="stat"><div class="v">${yoga}</div><div class="l">瑜珈次數</div></div></div>
+  ${mins ? `<p class="hint">總時間 ${mins} 分鐘</p>` : ''}
+  ${vis}
+  <div class="sec">紀錄 <span class="n">${L.length}</span></div>
+  ${L.map(x => `<div class="row" data-act="editEx" data-id="${x.id}"><div class="body"><div class="t">${h(x.type)}${x.distanceKm ? ` ${x.distanceKm} 公里` : ''}${x.minutes ? ` · ${x.minutes} 分鐘` : ''}</div><div class="meta">${fmtW(x.date)}${x.note ? ' · ' + h(x.note) : ''}</div></div></div>`).join('') || '<div class="empty">這段期間沒有紀錄。</div>'}`;
+}
+
+/* ---------- 週行程表 ---------- */
+function pgWeek(){
+  const a = addDays(weekStart(today()), S.weekOff * 7);
+  let html = '';
+  for(let i = 0; i < 7; i++){ const d = addDays(a, i); const items = dayItems(d, 'all', true);
+    html += `<div class="day"><div class="dh ${diff(d) === 0 ? 'today' : ''}">${fmtW(d)}</div>${items.map(it => agRow(it)).join('') || '<div class="ld">—</div>'}</div>`; }
+  return hdr('週行程表', { extra:`<button class="hbtn" data-act="newEvent">＋ 行程</button>` }) + `
+  <div class="navrow"><button class="btn sm" data-act="weekNav" data-v="-1">‹</button><div class="lbl">${fmt(a)}–${fmt(addDays(a, 6))}</div><button class="btn sm" data-act="weekNav" data-v="1">›</button>${S.weekOff ? `<button class="btn sm" data-act="weekNav" data-v="0">本週</button>` : ''}</div>
+  <div class="wk">${html}</div>`;
+}
+
+/* ---------- 月行事曆 ---------- */
+function pgMonth(){
+  const now = new Date(); const first = new Date(now.getFullYear(), now.getMonth() + S.monthOff, 1);
+  const fm = ymd(first), lm = ymd(new Date(first.getFullYear(), first.getMonth() + 1, 0));
+  const start = weekStart(fm);
+  const sel = S.selDay && S.selDay >= fm && S.selDay <= lm ? S.selDay : (S.monthOff ? fm : today());
+  let cells = '';
+  for(let d = start; d <= lm || (toD(d).getDay() !== 1); d = addDays(d, 1)){
+    const items = dayItems(d, 'all', true);
+    const cls = it => it.k === 'ev' ? (it.x.area === 'personal' ? 'k-pe' : 'k-ev') : 'k-' + it.k;
+    const ttl = it => it.k === 'tk' ? '☐ ' + it.x.title : it.x.title;
+    cells += `<div class="d ${d < fm || d > lm ? 'out' : ''} ${diff(d) === 0 ? 'today' : ''} ${d === sel ? 'sel' : ''}" data-act="selDay" data-v="${d}"><div class="num"><span>${+d.slice(8)}</span></div>${items.slice(0, 3).map(it => `<div class="it ${cls(it)}">${h(ttl(it))}</div>`).join('')}${items.length > 3 ? `<div class="more">+${items.length - 3}</div>` : ''}</div>`;
+  }
+  const items = dayItems(sel, 'all', true);
+  return hdr('月行事曆', { extra:`<button class="hbtn" data-act="newEvent" data-date="${sel}">＋ 行程</button>` }) + `
+  <div class="navrow"><button class="btn sm" data-act="monthNav" data-v="-1">‹</button><div class="lbl">${first.getFullYear()} 年 ${first.getMonth() + 1} 月</div><button class="btn sm" data-act="monthNav" data-v="1">›</button>${S.monthOff ? `<button class="btn sm" data-act="monthNav" data-v="0">本月</button>` : ''}</div>
+  <div class="cal">${[...'一二三四五六日'].map(w => `<div class="h">${w}</div>`).join('')}${cells}</div>
+  <div class="sec">${dayLabel(sel)}</div>${items.map(it => agRow(it, { range:true })).join('') || '<div class="empty">這天沒有安排。</div>'}`;
+}
+
+/* ---------- 筆記 ---------- */
+function pgNotes(){
+  const f = S.noteF;
+  const L = DB.notes.filter(n => f === 'all' || (!n.categoryId && !n.linked)).sort((a, b) => (b.date + b.id).localeCompare(a.date + a.id));
+  const allCats = [['', '不選分類（未整理）'], ...cats('work').map(c => [c.id, '工作／' + c.name]), ...cats('personal').map(c => [c.id, '個人／' + c.name])];
+  return hdr('筆記', { back:'goPrev', backLabel:'返回' }) + `
+  <div class="f"><textarea id="noteIn" placeholder="隨手記，例如：蕭老師說簡報下週給" style="width:100%;min-height:70px;border:1px solid var(--line);border-radius:6px;padding:8px 10px"></textarea></div>
+  <div class="qa"><select id="noteCat" style="flex:1;border:1px solid var(--line);border-radius:6px;padding:7px;background:#fff">${allCats.map(([v, l]) => `<option value="${v}">${h(l)}</option>`).join('')}</select><button class="btn pri" data-act="addNote">記下</button></div>
+  <div class="chips">${[['all','全部'],['inbox','未整理']].map(([k, l]) => `<button class="chip ${f === k ? 'on' : ''}" data-act="setS" data-k="noteF" data-v="${k}">${l}</button>`).join('')}</div>
+  ${L.map(n => { const tgt = n.linked ? findTarget(n.linked) : null;
+    return `<div class="row static"><div class="body"><div class="note-text">${h(n.text)}</div><div class="meta">${fmtW(n.date)} ${n.categoryId ? catTag(n.categoryId) : (n.linked ? '' : tag('未整理', 0))}
+    ${n.linked ? `已掛到：<a href="#" data-act="openTarget" data-kind="${n.linked.kind}" data-id="${n.linked.id}">${h(tgt ? (tgt.title || tgt.name) : '（已刪除）')}</a>` : ''}</div>
+    <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${n.linked ? '' : `<button class="btn sm" data-act="noteToTask" data-id="${n.id}">轉成待辦</button><button class="btn sm" data-act="noteAttach" data-id="${n.id}">掛到某件事</button>`}<button class="btn sm danger" data-act="delNote" data-id="${n.id}">刪除</button></div></div></div>`; }).join('') || '<div class="empty">沒有筆記。</div>'}`;
+}
+function findTarget(l){ return l.kind === 'task' ? DB.tasks.find(x => x.id === l.id) : l.kind === 'event' ? DB.events.find(x => x.id === l.id) : planOf(l.id); }
+
+/* ============================================================
+   編輯視窗
+============================================================ */
+const KIND = { task:() => DB.tasks, event:() => DB.events, plan:() => DB.plans, ex:() => DB.exercise, exp:() => DB.budget.expenses,
+  line:() => DB.budget.lines, fund:() => DB.budget.otherFunds, note:() => DB.notes };
+const KLABEL = { task:'待辦', event:'行程', plan:'計畫', ex:'運動紀錄', exp:'支出', line:'計畫經費', fund:'經費來源', note:'筆記' };
+function openSheet(kind, obj, isNew, extra){
+  const d = clone(obj);
+  if('links' in d) d.linksText = (d.links || []).join('\n');
+  SH = { kind, d, isNew, extra: extra || {} };
+  renderSheet();
+}
+function closeSheet(){ SH = null; const o = $('#ov'); o.innerHTML = ''; o.hidden = true; }
+const fld = (label, inner) => `<div class="f"><label>${label}</label>${inner}</div>`;
+const inH = (f, v, type, ph) => `<input type="${type || 'text'}" data-f="${f}" value="${h(v)}" placeholder="${h(ph || '')}"${type === 'number' ? ' inputmode="decimal"' : ''}>`;
+const taH = (f, v, ph) => `<textarea data-f="${f}" placeholder="${h(ph || '')}">${h(v)}</textarea>`;
+const selH = (f, v, opts, rr) => `<select data-f="${f}"${rr ? ' data-rr' : ''}>${opts.map(([k, l]) => `<option value="${h(k)}"${String(v) === String(k) ? ' selected' : ''}>${h(l)}</option>`).join('')}</select>`;
+const segH = (f, v, opts) => `<div class="seg">${opts.map(([k, l]) => `<button type="button" class="${v === k ? 'on' : ''}" data-act="seg" data-f="${f}" data-v="${h(k)}">${h(l)}</button>`).join('')}</div>`;
+const catOpts = area => [['', '未分類'], ...cats(area).map(c => [c.id, c.name])];
+const planOpts = cid => [['', '（不屬於計畫）'], ...DB.plans.filter(p => !cid || p.categoryId === cid).map(p => [p.id, p.name])];
+function logH(){
+  const L = SH.d.log || [];
+  return `<div class="f"><label>筆記（新到舊）</label><div class="qa"><input id="logIn" data-enter="addLog" placeholder="寫一句話"><button class="btn" data-act="addLog">加入</button></div>
+  <div class="log">${L.length ? L.map((x, i) => `<div class="li"><span class="ld">${fmt(x.date)}</span> ${h(x.text)} <button class="ld" data-act="delLog" data-i="${i}" aria-label="刪除">✕</button></div>`).join('') : '<div class="ld">還沒有筆記</div>'}</div></div>`;
+}
+function renderSheet(){
+  if(!SH) return;
+  const { kind, d, isNew } = SH;
+  let b = '';
+  if(kind === 'task'){
+    b = `<h2>${isNew ? '新增待辦' : '待辦'}</h2>${fld('標題', inH('title', d.title))}
+    ${fld('工作或個人', segH('area', d.area, [['work','工作'],['personal','個人']]))}
+    <div class="fr">${fld('分類', selH('categoryId', d.categoryId, catOpts(d.area), 1))}${fld('截止日', inH('dueDate', d.dueDate, 'date'))}</div>
+    ${d.area === 'work' ? `<div class="fr">${fld('我的角色', segH('role', d.role, [['承辦','承辦'],['參加','參加']]))}${fld('性質', selH('nature', d.nature, Object.entries(NATURES)))}</div>` : ''}
+    ${fld('狀態', segH('status', d.status, Object.entries(STATUS)))}
+    ${d.status === 'waiting' ? fld('在等誰、等什麼', inH('waitingFor', d.waitingFor, 'text', '例如：主任簽核')) : ''}
+    ${d.area === 'work' ? fld('屬於哪個計畫', selH('planId', d.planId, planOpts(d.categoryId))) : ''}
+    ${fld('連結（一行一個）', taH('linksText', d.linksText, '公文、雲端檔案網址'))}${linksView()}${logH()}`;
+  } else if(kind === 'event'){
+    b = `<h2>${isNew ? '新增行程' : '行程'}</h2>${fld('標題', inH('title', d.title))}
+    ${fld('種類', segH('type', d.type, EVENT_TYPES.map(t => [t, t])))}
+    <div class="fr">${fld('開始日', inH('startDate', d.startDate, 'date'))}${fld('結束日（單日可空白）', inH('endDate', d.endDate, 'date'))}</div>
+    <div class="fr">${fld('時間', inH('time', d.time, 'text', '09:30-12:00'))}${fld('地點', inH('location', d.location))}</div>
+    <div class="fr">${fld('分類', selH('categoryId', d.categoryId, catOpts(d.area), 1))}${d.area === 'work' ? fld('我的角色', segH('role', d.role, [['承辦','承辦'],['參加','參加']])) : '<div></div>'}</div>
+    ${d.area === 'work' ? fld('屬於哪個計畫', selH('planId', d.planId, planOpts(d.categoryId === (catByName('work', d.type) || {}).id ? '' : d.categoryId))) : ''}
+    ${fld('說明', taH('info', d.info, '講師、會議連結、要帶的東西…'))}
+    ${fld('連結（一行一個）', taH('linksText', d.linksText))}${linksView()}${logH()}
+    ${!isNew ? `<div class="f"><button class="btn sm" data-act="taskFromEvent">＋ 為這個行程加一件待辦</button></div>` : ''}`;
+  } else if(kind === 'plan'){
+    b = `<h2>${isNew ? '新增計畫' : '計畫'}</h2>${fld('名稱', inH('name', d.name))}
+    <div class="fr">${fld('分類', selH('categoryId', d.categoryId, catOpts('work').slice(1)))}${fld('我的角色', segH('role', d.role, [['承辦','承辦'],['執行','執行'],['參加','參加']]))}</div>
+    ${fld('說明', taH('desc', d.desc))}
+    <div class="f"><label>里程碑</label>${d.milestones.map((m, i) => `<div class="card" style="padding:8px">
+      <div class="f" style="margin-bottom:6px">${inH(`milestones.${i}.title`, m.title, 'text', '名稱')}</div>
+      <div class="fr">${inH(`milestones.${i}.date`, m.date, 'date')}${selH(`milestones.${i}.mode`, m.mode, [['host','辦理'],['remind','不辦，只提醒']])}</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:6px"><label style="font-size:13px;display:flex;gap:4px;align-items:center"><input type="checkbox" data-f="milestones.${i}.done"${m.done ? ' checked' : ''}>已完成</label><span style="flex:1"></span><button class="btn sm danger" data-act="delMs" data-i="${i}">刪除</button></div></div>`).join('')}
+      <button class="btn sm" data-act="addMs">＋ 里程碑</button></div>${logH()}`;
+  } else if(kind === 'ex'){
+    const std = ['跑步','瑜珈','其他'];
+    b = `<h2>${isNew ? '新增運動紀錄' : '運動紀錄'}</h2>${fld('日期', inH('date', d.date, 'date'))}
+    ${fld('項目', segH('typeSel', std.includes(d.type) ? d.type : '其他', std.map(t => [t, t])))}
+    ${!['跑步','瑜珈'].includes(d.type) ? fld('項目名稱', inH('type', d.type === '其他' ? '' : d.type, 'text', '例如：快走、游泳')) : ''}
+    <div class="fr">${fld('距離（公里）', inH('distanceKm', d.distanceKm, 'number'))}${fld('時間（分鐘）', inH('minutes', d.minutes, 'number'))}</div>
+    ${fld('備註', inH('note', d.note, 'text', '運動狀況、感覺'))}`;
+  } else if(kind === 'exp'){
+    const codes = [...DB.budget.lines.map(l => [l.code, l.code]), ...DB.budget.otherFunds.map(f => [f.name, f.name])];
+    const line = DB.budget.lines.find(l => l.code === d.code);
+    b = `<h2>${isNew ? '新增支出' : '支出'}</h2>
+    <div class="fr">${fld('經費', selH('code', d.code, codes, 1))}${fld('經費類別', `<input data-f="cat" list="catList" value="${h(d.cat)}" placeholder="例如：講師費"><datalist id="catList">${((line && line.items) || []).map(it => `<option value="${h(it.cat)}">`).join('')}</datalist>`)}</div>
+    <div class="fr">${fld('金額', inH('amount', d.amount, 'number'))}${fld('日期', inH('date', d.date, 'date'))}</div>
+    ${fld('說明', inH('desc', d.desc, 'text', '例如：好市多文具'))}
+    ${fld('代墊', segH('adv', d.adv, [['none','不是代墊'], ...ADV.map(a => [a, a])]))}
+    ${d.adv !== 'none' ? `<div class="fr">${fld('代墊人', inH('advBy', d.advBy))}${fld('發票', segH('invoice', d.invoice, [['yes','已有'],['no','尚未']]))}</div>` : ''}`;
+  } else if(kind === 'line'){
+    b = `<h2>${isNew ? '新增計畫經費' : '計畫經費'}</h2><div class="fr">${fld('代號', inH('code', d.code, 'text', 'A-2-2'))}${fld('名稱', inH('name', d.name))}</div>
+    ${fld('核定金額', inH('approved', d.approved, 'number'))}
+    <div class="f"><label>概算（每個經費類別）</label>${d.items.map((it, i) => `<div class="fr" style="margin-bottom:6px;grid-template-columns:1fr 1fr auto">${inH(`items.${i}.cat`, it.cat, 'text', '類別')}${inH(`items.${i}.amount`, it.amount, 'number', '金額')}<button class="btn sm danger" data-act="delItem" data-i="${i}">✕</button></div>`).join('')}
+    <button class="btn sm" data-act="addItem">＋ 類別</button></div>`;
+  } else if(kind === 'fund'){
+    b = `<h2>${isNew ? '新增經費來源' : '經費來源'}</h2>${fld('名稱', inH('name', d.name))}${fld('金額', inH('amount', d.amount, 'number'))}${fld('備註', inH('note', d.note))}
+    <p class="hint">記支出時選這個名稱，就會算進這筆經費。</p>`;
+  } else if(kind === 'attach'){
+    const T = DB.tasks.filter(t => t.status !== 'done').map(t => ['task:' + t.id, '待辦／' + t.title]);
+    const E = DB.events.filter(e => evEnd(e) >= addDays(today(), -30)).sort((a, b) => a.startDate.localeCompare(b.startDate)).map(e => ['event:' + e.id, `行程／${fmt(e.startDate)} ${e.title}`]);
+    const P = DB.plans.map(p => ['plan:' + p.id, '計畫／' + p.name]);
+    b = `<h2>掛到某件事</h2><p class="note-text" style="font-size:14px;color:var(--ink2)">${h(d.text)}</p>${fld('選一件事', selH('target', d.target, [['', '請選擇'], ...T, ...E, ...P]))}`;
+  } else if(kind === 'settings'){
+    b = settingsBody();
+  }
+  const canDel = !isNew && KIND[kind];
+  const foot = kind === 'settings' ? `<div class="acts"><span class="sp"></span><button class="btn" data-act="closeSheet">關閉</button></div>`
+    : `<div class="acts">${canDel ? `<button class="btn danger" data-act="delItemSheet">刪除</button>` : ''}<span class="sp"></span><button class="btn" data-act="closeSheet">取消</button><button class="btn pri" data-act="saveSheet">${kind === 'attach' ? '掛上' : '儲存'}</button></div>`;
+  const o = $('#ov'); o.hidden = false; const sc = o.firstElementChild ? o.firstElementChild.scrollTop : 0;
+  o.innerHTML = `<div class="sheet">${b}${foot}</div>`; o.firstElementChild.scrollTop = sc;
+}
+function linksView(){ const L = (SH.d.linksText || '').split('\n').map(s => s.trim()).filter(Boolean);
+  return L.length ? `<div class="f" style="margin-top:-6px">${L.map(u => `<div style="font-size:13px;word-break:break-all"><a href="${h(/^https?:/.test(u) ? u : '#')}" target="_blank" rel="noopener">${h(u)}</a></div>`).join('')}</div>` : ''; }
+function settingsBody(){
+  const tr = DB.trash.slice().reverse();
+  return `<h2>設定</h2>
+  ${fld('Google 試算表網址（Apps Script /exec）', `<div class="qa"><input id="urlIn" value="${h(Sync.url())}"><button class="btn" data-act="changeUrl">測試並儲存</button></div>`)}
+  <div class="f"><label>資料</label><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="exportJSON">匯出備份（JSON）</button><label class="btn" style="cursor:pointer">匯入備份<input type="file" accept=".json,application/json" id="impFile" hidden></label></div>
+  <p class="hint">這是新版（v2）的資料。舊版資料仍原封不動存在同一份試算表裡（key：library-system-db-v1），舊網址和 LINE 機器人目前還是用舊資料。</p></div>
+  <div class="f"><label>最近刪除（可復原，最多 30 筆）</label>${tr.length ? tr.map((x, i) => `<div style="display:flex;gap:8px;align-items:center;font-size:13px;padding:3px 0"><span style="flex:1">${KLABEL[x.kind] || ''}／${h(x.item.title || x.item.name || x.item.text || x.item.desc || x.item.code || '')} <span class="ld">${fmt(x.at)}</span></span><button class="btn sm" data-act="restore" data-i="${DB.trash.length - 1 - i}">復原</button></div>`).join('') : '<div class="ld">沒有</div>'}</div>`;
+}
+function setPath(o, p, v){ const k = p.split('.'); let x = o; for(let i = 0; i < k.length - 1; i++) x = x[k[i]]; x[k[k.length - 1]] = v; }
+
+function saveSheet(){
+  const { kind, d, isNew, extra } = SH;
+  if('linksText' in d){ d.links = d.linksText.split('\n').map(s => s.trim()).filter(Boolean); delete d.linksText; }
+  if(kind === 'attach'){
+    if(!d.target) return toast('請選一件事');
+    const [k, id] = d.target.split(':'); const tgt = findTarget({ kind:k, id }); const n = DB.notes.find(x => x.id === d.noteId);
+    if(tgt && n){ tgt.log = tgt.log || []; tgt.log.unshift({ id: uid('l'), date: n.date, text: n.text }); n.linked = { kind:k, id }; }
+    save(); closeSheet(); render(); return toast('已掛上');
+  }
+  if(kind === 'task' || kind === 'event'){ if(!d.title.trim()) return toast('請填標題'); d.title = d.title.trim(); }
+  if(kind === 'task'){
+    if(d.status === 'done'){ if(!d.completedDate) d.completedDate = today(); } else d.completedDate = '';
+    if(d.status === 'waiting'){ if(!d.waitingSince) d.waitingSince = today(); } else d.waitingSince = '';
+  }
+  if(kind === 'event'){ if(!d.startDate) return toast('請填開始日'); if(d.endDate && d.endDate < d.startDate) return toast('結束日比開始日早'); if(d.endDate === d.startDate) d.endDate = ''; }
+  if(kind === 'plan' && !d.name.trim()) return toast('請填名稱');
+  if(kind === 'ex'){ if(!d.date) return toast('請填日期'); if(!d.type) d.type = '其他'; delete d.typeSel; }
+  if(kind === 'exp'){ if(!(+d.amount)) return toast('請填金額'); d.amount = +d.amount; if(d.adv === 'none'){ d.advBy = ''; } }
+  if(kind === 'line'){ if(!d.code.trim()) return toast('請填代號'); d.approved = +d.approved || 0; d.items = d.items.filter(it => it.cat);
+    const old = DB.budget.lines.find(l => l.id === d.id); if(old && old.code !== d.code) DB.budget.expenses.forEach(x => { if(x.code === old.code) x.code = d.code; }); }
+  if(kind === 'fund'){ if(!d.name.trim()) return toast('請填名稱'); d.amount = +d.amount || 0;
+    const old = DB.budget.otherFunds.find(f => f.id === d.id); if(old && old.name !== d.name) DB.budget.expenses.forEach(x => { if(x.code === old.name) x.code = d.name; }); }
+  const arr = KIND[kind]();
+  const i = arr.findIndex(x => x.id === d.id); if(i >= 0) arr[i] = d; else arr.push(d);
+  if(extra.fromNote){ const n = DB.notes.find(x => x.id === extra.fromNote); if(n) n.linked = { kind:'task', id:d.id }; }
+  save(); closeSheet(); render(); toast(isNew ? '已新增' : '已儲存');
+}
+function trashIt(kind, id){
+  const arr = KIND[kind](); const i = arr.findIndex(x => x.id === id); if(i < 0) return;
+  const [item] = arr.splice(i, 1);
+  if(kind === 'plan') DB.tasks.concat(DB.events).forEach(x => { if(x.planId === id) x.planId = ''; });
+  DB.trash.push({ kind, item, at: today() }); if(DB.trash.length > 30) DB.trash.shift();
+  save(); toast('已刪除，可在「設定」裡復原');
+}
+
+/* ============================================================
+   動作
+============================================================ */
+function parseQuick(s){
+  const m = s.match(/^(\d{1,2})[\/\.](\d{1,2})\s*/); if(!m) return { title:s };
+  const mo = +m[1], dd = +m[2]; if(mo < 1 || mo > 12 || dd < 1 || dd > 31) return { title:s };
+  let y = new Date().getFullYear(); if(mo < new Date().getMonth() + 1 - 4) y++;
+  return { title: s.slice(m[0].length) || s, dueDate: `${y}-${pad(mo)}-${pad(dd)}` };
+}
+function go(p){ if(p === 'notes' && S.page !== 'notes') S.prev = S.page; S.page = p; S.cat = null; S.tab = ''; S.showDone = false; render(); window.scrollTo(0, 0); }
+const A = {
+  go: d => go(d.p),
+  goPrev: () => go(S.prev || 'todo'),
+  openCat: d => { const c = cat(d.id); if(c) S.page = c.area; else if(d.id.startsWith('__none_')) S.page = d.id.slice(7); S.cat = d.id; S.tab = ''; S.showDone = false; render(); window.scrollTo(0, 0); },
+  backCat: () => { S.cat = null; S.showDone = false; render(); window.scrollTo(0, 0); },
+  setS: d => { S[d.k] = (d.v === '1') ? true : (d.v === '' ? false : d.v); render(); },
+  weekNav: d => { S.weekOff = +d.v ? S.weekOff + +d.v : 0; render(); },
+  monthNav: d => { S.monthOff = +d.v ? S.monthOff + +d.v : 0; S.selDay = null; render(); },
+  selDay: d => { S.selDay = d.v; render(); },
+  setEx: d => { S.exRange = d.v; S.exOff = 0; render(); },
+  exNav: d => { S.exOff = +d.v ? S.exOff + +d.v : 0; render(); },
+  quickAdd: () => { const i = $('#qaIn'); const v = i.value.trim(); if(!v) return; const q = parseQuick(v);
+    DB.tasks.push(newTask({ title:q.title, dueDate:q.dueDate || '', area: S.todoF === 'personal' ? 'personal' : 'work' }));
+    save(); render(); const n = $('#qaIn'); if(n) n.focus(); toast('已加入' + (q.dueDate ? `，${fmt(q.dueDate)} 截止` : '')); },
+  toggleTask: d => { const t = DB.tasks.find(x => x.id === d.id); if(!t) return;
+    if(t.status === 'done'){ t.status = 'todo'; t.completedDate = ''; } else { t.status = 'done'; t.completedDate = today(); t.waitingSince = ''; }
+    save(); render(); },
+  toggleMs: d => { const p = planOf(d.id); const m = p && p.milestones[+d.i]; if(!m) return; m.done = !m.done; save(); render(); },
+  editTask: d => { const t = DB.tasks.find(x => x.id === d.id); if(t) openSheet('task', t, false); },
+  editEvent: d => { const e = DB.events.find(x => x.id === d.id); if(e) openSheet('event', e, false); },
+  editPlan: d => { const p = planOf(d.id); if(p) openSheet('plan', p, false); },
+  openPlan: d => { const p = planOf(d.id); if(p) openSheet('plan', p, false); },
+  newTask: d => { const c = cat(d.cat); openSheet('task', newTask({ categoryId: c ? c.id : '', area: c ? c.area : (S.page === 'personal' ? 'personal' : 'work'), planId: d.plan || '' }), true); },
+  newEvent: d => { const c = cat(d.cat); const o = { startDate: d.date || today() };
+    if(c){ o.categoryId = c.id; if(c.area === 'personal'){ o.type = '個人行程'; o.area = 'personal'; } else if(EVENT_TYPES.includes(c.name)) o.type = c.name; }
+    else if(S.page === 'personal'){ o.type = '個人行程'; o.area = 'personal'; }
+    openSheet('event', newEvent(o), true); },
+  newPlan: d => openSheet('plan', { id: uid('p'), categoryId: d.cat, name:'', role:'承辦', desc:'', milestones:[], log:[] }, true),
+  newEx: () => openSheet('ex', { id: uid('x'), date: today(), type:'跑步', distanceKm:'', minutes:'', note:'' }, true),
+  editEx: d => { const x = DB.exercise.find(y => y.id === d.id); if(x) openSheet('ex', x, false); },
+  newExp: () => openSheet('exp', { id: uid('x'), code: (DB.budget.lines[0] || {}).code || '', cat:'', amount:'', date: today(), desc:'', adv:'none', advBy:'', invoice:'yes' }, true),
+  editExp: d => { const x = DB.budget.expenses.find(y => y.id === d.id); if(x) openSheet('exp', x, false); },
+  newLine: () => openSheet('line', { id: uid('b'), code:'', name:'', approved:'', items:[] }, true),
+  editLine: d => { const x = DB.budget.lines.find(y => y.id === d.id); if(x) openSheet('line', x, false); },
+  newFund: () => openSheet('fund', { id: uid('f'), name:'', amount:'', note:'' }, true),
+  editFund: d => { const x = DB.budget.otherFunds.find(y => y.id === d.id); if(x) openSheet('fund', x, false); },
+  addNote: () => { const t = $('#noteIn').value.trim(); if(!t) return toast('先寫點內容');
+    DB.notes.push({ id: uid('n'), date: today(), text:t, categoryId: $('#noteCat').value, linked:null }); save(); render(); toast('已記下'); },
+  delNote: d => { trashIt('note', d.id); render(); },
+  noteToTask: d => { const n = DB.notes.find(x => x.id === d.id); if(!n) return; const c = cat(n.categoryId);
+    openSheet('task', newTask({ title: n.text.split('\n')[0].slice(0, 60), categoryId: c ? c.id : '', area: c ? c.area : 'work', log:[{ id: uid('l'), date: n.date, text: n.text }] }), true, { fromNote: n.id }); },
+  noteAttach: d => { const n = DB.notes.find(x => x.id === d.id); if(n) openSheet('attach', { noteId: n.id, text: n.text, target:'' }, true); },
+  openTarget: d => { const t = findTarget({ kind: d.kind, id: d.id }); if(t) openSheet(d.kind, t, false); },
+  taskFromEvent: () => { const e = SH.d; const t = newTask({ title:'', categoryId: e.categoryId, area: e.area, eventId: e.id, planId: e.planId || '', dueDate: e.startDate });
+    closeSheet(); openSheet('task', t, true); },
+  /* 編輯視窗內 */
+  seg: d => { const D = SH.d; setPath(D, d.f, d.v);
+    if(d.f === 'area'){ D.categoryId = ''; D.planId = ''; }
+    if(d.f === 'type'){ const was = D.area; D.area = d.v === '個人行程' ? 'personal' : 'work';
+      const c = D.area === 'personal' ? catByName('personal', '個人活動') : catByName('work', d.v);
+      const cur = cat(D.categoryId);
+      if(was !== D.area || !cur || EVENT_TYPES.includes(cur.name) || cur.name === '個人活動'){ D.categoryId = c ? c.id : ''; D.planId = ''; } }
+    if(d.f === 'typeSel'){ D.type = d.v === '其他' ? '' : d.v; }
+    renderSheet(); },
+  addLog: () => { const i = $('#logIn'); const v = i.value.trim(); if(!v) return; SH.d.log = SH.d.log || []; SH.d.log.unshift({ id: uid('l'), date: today(), text:v }); renderSheet(); const n = $('#logIn'); if(n) n.focus(); },
+  delLog: d => { SH.d.log.splice(+d.i, 1); renderSheet(); },
+  addMs: () => { SH.d.milestones.push({ id: uid('m'), title:'', date:'', mode:'host', done:false, log:[] }); renderSheet(); },
+  delMs: d => { SH.d.milestones.splice(+d.i, 1); renderSheet(); },
+  addItem: () => { SH.d.items.push({ cat:'', amount:'' }); renderSheet(); },
+  delItem: d => { SH.d.items.splice(+d.i, 1); renderSheet(); },
+  closeSheet: () => closeSheet(),
+  saveSheet: () => saveSheet(),
+  delItemSheet: () => { const { kind, d } = SH; closeSheet(); trashIt(kind, d.id); render(); },
+  settings: () => { SH = { kind:'settings', d:{}, isNew:false, extra:{} }; renderSheet(); },
+  changeUrl: async () => { const u = $('#urlIn').value.trim(); try{ await ping(u); Sync.set(u); toast('連線成功，重新載入'); setTimeout(() => location.reload(), 600); }catch(e){ toast('連線失敗：' + e.message); } },
+  exportJSON: () => { const blob = new Blob([JSON.stringify(DB, null, 2)], { type:'application/json' }); const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = `library-system-v2-backup-${today()}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); },
+  restore: d => { const [x] = DB.trash.splice(+d.i, 1); if(x && KIND[x.kind]) KIND[x.kind]().push(x.item); save(); renderSheet(); render(); toast('已復原'); },
+  connect: async () => { const u = $('#urlIn').value.trim(); if(!u) return toast('請貼上網址'); try{ await ping(u); Sync.set(u); init(); }catch(e){ toast('連線失敗：' + e.message); } },
+  retry: () => init(),
+  createFresh: async () => { DB = seed(); fix(); await saveNow(); if(lastRaw){ localStorage.setItem('libV2Created', '1'); render(); startPoll(); } }
+};
+
+/* ---------- 事件 ---------- */
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if(!el) return;
+  const fn = A[el.dataset.act]; if(!fn) return;
+  if(el.tagName === 'A') e.preventDefault();
+  fn(el.dataset, el);
+});
+function onField(e){
+  const t = e.target; if(!SH || !t.dataset || !t.dataset.f) return;
+  let v = t.type === 'checkbox' ? t.checked : t.value;
+  setPath(SH.d, t.dataset.f, v);
+  if(e.type === 'change' && t.dataset.rr !== undefined){
+    if(t.dataset.f === 'categoryId') SH.d.planId = '';
+    renderSheet();
+  }
+}
+document.addEventListener('input', onField);
+document.addEventListener('change', e => {
+  onField(e);
+  if(e.target.id === 'impFile' && e.target.files[0]){
+    const r = new FileReader();
+    r.onload = () => { try{ const o = JSON.parse(r.result); if(o.version !== 2) return toast('這不是新版（v2）的備份檔');
+      DB = o; fix(); save(); closeSheet(); render(); toast('已匯入'); }catch(err){ toast('檔案格式錯誤'); } };
+    r.readAsText(e.target.files[0]);
+  }
+});
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Enter' || e.isComposing) return;
+  const a = e.target.dataset && e.target.dataset.enter; if(a && A[a]){ e.preventDefault(); A[a]({}); }
+});
+
+/* ---------- 啟動與同步 ---------- */
+function connectScreen(msg){
+  $('#app').innerHTML = `<div class="center"><h2>連接 Google 試算表</h2><p style="color:var(--ink2);font-size:14px">${h(msg || '貼上 Apps Script 的 /exec 網址（跟舊版用的是同一組）。')}</p>
+  <div class="f"><input id="urlIn" value="${h(Sync.url())}" placeholder="https://script.google.com/macros/s/.../exec" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:8px"></div>
+  <button class="btn pri" data-act="connect">測試連線並儲存</button></div>`;
+}
+function failScreen(msg){
+  const first = !localStorage.getItem('libV2Created');
+  $('#app').innerHTML = `<div class="center"><h2>連線失敗</h2><p style="color:var(--ink2);font-size:14px">${h(msg)}<br>資料沒有被更動。請確認網路後重試。</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" data-act="retry">重新連線</button><button class="btn" data-act="settingsUrl">更換網址</button>
+  ${first ? `<button class="btn" data-act="createFresh">建立新的空白資料</button>` : ''}</div>
+  ${first ? '<p class="hint">「建立新的空白資料」只會寫入新版的位置，不會碰到舊資料。</p>' : ''}</div>`;
+}
+A.settingsUrl = () => connectScreen();
+async function init(){
+  if(!Sync.url()) return connectScreen();
+  $('#app').innerHTML = '<div class="center" style="color:var(--ink2)">讀取中…</div>';
+  let raw;
+  try{ raw = await apiGet(KEY); }catch(e){ return failScreen(e.message); }
+  if(raw){ try{ DB = JSON.parse(raw); }catch(e){ return failScreen('資料格式錯誤'); } lastRaw = raw; fix(); }
+  else { DB = seed(); fix(); await saveNow(); if(!lastRaw) return failScreen('無法建立新資料'); toast('已建立新的空白資料'); }
+  localStorage.setItem('libV2Created', '1');
+  render(); startPoll();
+}
+function startPoll(){
+  if(pollT) return;
+  pollT = setInterval(async () => {
+    const ae = document.activeElement;
+    if(SH || saveT || document.hidden || (ae && /INPUT|TEXTAREA|SELECT/.test(ae.tagName) && ae.value)) return;
+    try{ const raw = await apiGet(KEY); if(raw && raw !== lastRaw){ lastRaw = raw; DB = JSON.parse(raw); fix(); render(); toast('資料已更新'); } }catch(e){}
+  }, 25000);
+}
+window.addEventListener('beforeunload', e => { if(saveT){ saveNow(); e.preventDefault(); e.returnValue = ''; } });
+init();
+</script>
+</body>
+</html>
